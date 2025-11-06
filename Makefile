@@ -1,5 +1,5 @@
 live/templ:
-	templ generate --watch --proxy="http://localhost:8080" --open-browser=false
+	templ generate --watch --proxy="http://localhost:8080" --proxybind="0.0.0.0" --open-browser=false
 
 live/server:
 	TEMPL_DEV_MODE=1 go run github.com/air-verse/air@latest \
