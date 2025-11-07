@@ -4,5 +4,7 @@ package components
 import "fmt"
 
 templ Greet(name string, age int) {
-<p>Hi I'm { name }, and I'm { fmt.Sprint(age) } years old!</p>
+	<div class="card card-title">
+		<p>Hi I'm { name }, and I'm { fmt.Sprint(age) } years old!</p>
+	</div>
 }
