@@ -15,7 +15,7 @@ live/tailwind:
 		--build.cmd "npx tailwindcss -i ./static/css/style.css -o ./static/css/tailwind.css --minify" \
 		--build.delay "10" \
 		--build.exclude_dir "node_modules" \
-		# --log.time "true" 
+		--log.time "true" 
 		--build.include_ext "templ,go" \
 		--color.main "magenta" \
 		--color.watcher "cyan" \
