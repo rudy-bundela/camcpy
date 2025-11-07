@@ -1,0 +1,28 @@
+package components
+
+templ cardComponent() {
+	<div class="flex items-center mt-4 justify-center card image-full">
+		<div class="card-title">Pair your device (if you haven't already)</div>
+		<figure>
+			<img src="/static/images/screenshot-2025-11-08_00-00-11.png"/>
+		</figure>
+	</div>
+}
+
+templ inputField(heading, placeholder string) {
+	<label class="label">{ heading }</label>
+	<input type="email" class="input" min="" placeholder={ placeholder }/>
+}
+
+templ pairForm() {
+	@cardComponent()
+	<div class="flex items-center mt-4 justify-center">
+		<fieldset class="join-item fieldset bg-base-200 border-base-300 rounded-box w-xs border p-4 flex-col justify-center">
+			<legend class="fieldset-legend">Pairing Details</legend>
+			@inputField("IP Address", "e.g 192.168.0.1")
+			@inputField("Port Number", "00000 (5-digit number)")
+			@inputField("Pairing Code", "000000 (6-digit number)")
+			<button class="btn btn-neutral mt-4">Pair with Device</button>
+		</fieldset>
+	</div>
+}
