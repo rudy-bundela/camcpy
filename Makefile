@@ -1,4 +1,4 @@
-.PHONY: help install/templ install/godeps install live live/templ live/server live/tailwind live/sync_assets
+.PHONY: help install/templ install/godeps install/tailwind install live live/templ live/server live/tailwind live/sync_assets
 
 help:  ## Show this help.
 	@awk 'BEGIN {FS = ":.*## "}; /^[a-zA-Z0-9_-]+:.*## / {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -7,10 +7,13 @@ install/templ:
 	go install github.com/a-h/templ/cmd/templ@latest
 	
 install/godeps:
-	go mod tidy
+	go get camcpy/components && go mod tidy 
+
+install/tailwind:
+	npm install tailwindcss @tailwindcss/cli
 
 install: ## Install dependencies (templ and godeps)
-	$(MAKE) install/templ install/godeps
+	$(MAKE) install/templ install/godeps install/tailwind
 
 live/templ:
 	templ generate --watch --proxy="http://localhost:8080" --proxybind="0.0.0.0" --open-browser=false
