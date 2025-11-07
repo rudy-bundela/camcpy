@@ -10,9 +10,9 @@ install/godeps:
 	go get camcpy/components && go mod tidy 
 
 install/tailwind:
-	npm install tailwindcss @tailwindcss/cli
+	npm install tailwindcss @tailwindcss/cli && npm i -D daisyui@latest
 
-install: ## Install dependencies (templ and godeps)
+install: ## Install dependencies
 	$(MAKE) install/templ install/godeps install/tailwind
 
 live/templ:
