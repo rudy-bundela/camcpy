@@ -23,6 +23,11 @@ func disableCacheInDevMode(next http.Handler) http.Handler {
 	})
 }
 
+func handleTest(w http.ResponseWriter, r *http.Request) {
+	fmt.Println(r)
+	log.Println(w.Write([]byte(r.Host)))
+}
+
 func main() {
 	mux := http.NewServeMux()
 
@@ -35,6 +40,7 @@ func main() {
 	// Your other routes...
 
 	mux.Handle("/", templ.Handler(components.Index()))
+	mux.Handle("/formendpoint", http.HandlerFunc(handleTest))
 
 	fmt.Println("Listening on :8080")
 	log.Fatal(http.ListenAndServe(":8080", mux))
