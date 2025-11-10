@@ -30,7 +30,6 @@ func handleTest(w http.ResponseWriter, r *http.Request) {
 	sse.ExecuteScript(`console.log("Hello from server!")`)
 	sse.PatchElementTempl(components.Index())
 	sse.ExecuteScript(`alert("SSE is cool!")`)
-	log.Println(w.Write([]byte(r.Host)))
 }
 
 func main() {
