@@ -9,6 +9,7 @@ import (
 	"camcpy/components"
 
 	"github.com/a-h/templ"
+	"github.com/starfederation/datastar-go/datastar"
 )
 
 var dev = true
@@ -25,6 +26,10 @@ func disableCacheInDevMode(next http.Handler) http.Handler {
 
 func handleTest(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(r)
+	sse := datastar.NewSSE(w, r)
+	sse.ExecuteScript(`console.log("Hello from server!")`)
+	sse.PatchElementTempl(components.Index())
+	sse.ExecuteScript(`alert("SSE is cool!")`)
 	log.Println(w.Write([]byte(r.Host)))
 }
 

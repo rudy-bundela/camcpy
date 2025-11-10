@@ -76,6 +76,7 @@ templ pairForm() {
     @inputField("Port Number", "00000 (5-digit number)")
     @inputField("Pairing Code", "000000 (6-digit number)")
     <button class="btn btn-neutral mt-4">Pair with Device</button>
+    <button class="btn btn-neutral mt-4" data-on:click="@get('/formendpoint')">Test datastar</button>
   </fieldset>
 </div>
 }

@@ -2,22 +2,27 @@
 package components
 
 templ Layout(children ...templ.Component) {
-	<!DOCTYPE html>
-	<html lang="en">
-		<head>
-			<meta charset="UTF-8"/>
-			<meta name="viewport" content="width=device-width, initial-scale=1"/>
-			<title>Camcpy</title>
-			<!--
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script type="module"
+    src="https://cdn.jsdelivr.net/gh/starfederation/datastar@1.0.0-RC.6/bundles/datastar.js"></script>
+  <title>Camcpy</title>
+  <!--
                 This line is literally why we created the layout component.
                 Actually having a standard html thing is why, but yeah it's what it's!
             -->
-			<link href="/static/css/tailwind.css" rel="stylesheet"/>
-		</head>
-		<body>
-			for _, child := range children {
-				@child
-			}
-		</body>
-	</html>
+  <link href="/static/css/tailwind.css" rel="stylesheet" />
+</head>
+
+<body>
+  for _, child := range children {
+  @child
+  }
+</body>
+
+</html>
 }
