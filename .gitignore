@@ -3,5 +3,5 @@
 static/css/tailwind.css
 node_modules/
 spendings
-tmp/bin
 static/images
+tmp

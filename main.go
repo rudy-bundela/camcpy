@@ -27,10 +27,7 @@ func disableCacheInDevMode(next http.Handler) http.Handler {
 }
 
 func handleTest(w http.ResponseWriter, r *http.Request) {
-	fmt.Println(r)
 	sse := datastar.NewSSE(w, r)
-	// sse.ExecuteScript(`console.log("Hello from server!")`)
-	// sse.ExecuteScript(`alert("SSE is cool!")`)
 	updateCount := rand.Intn(10) + 3
 	sse.PatchElements(fmt.Sprintf("<pre><code>Sending down %d numbers</code></pre>", updateCount),
 		datastar.WithSelectorID("appendhere"), datastar.WithModeInner(), datastar.WithModeAppend())
