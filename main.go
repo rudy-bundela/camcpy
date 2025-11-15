@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/http"
 
-	"camcpy/components"
+	"camcpy/main/components"
 	"camcpy/main/handlers"
 
 	"github.com/a-h/templ"
