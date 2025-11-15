@@ -2,19 +2,6 @@
 package components
 
 // also added this freakish not JavaScript JavaScript function as a demonstration to functions and events
-
-script doTheThing() {
-window.alert("yoho")
-}
-
-templ main() {
-	<main>
-		<button onClick={ doTheThing() } class="btn btn-xl hover:bg-amber-400">
-			Click me
-		</button>
-	</main>
-}
-
 templ Index() {
-	@Layout(pairForm())
+	@Layout(pairForm(), carouselComponent())
 }
