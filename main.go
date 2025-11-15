@@ -4,14 +4,12 @@ package main
 import (
 	"fmt"
 	"log"
-	"math/rand"
 	"net/http"
-	"time"
 
 	"camcpy/components"
+	"camcpy/main/handlers"
 
 	"github.com/a-h/templ"
-	"github.com/starfederation/datastar-go/datastar"
 )
 
 var dev = true
@@ -26,18 +24,6 @@ func disableCacheInDevMode(next http.Handler) http.Handler {
 	})
 }
 
-func handleTest(w http.ResponseWriter, r *http.Request) {
-	sse := datastar.NewSSE(w, r)
-	updateCount := rand.Intn(10) + 3
-	sse.PatchElements(fmt.Sprintf("<pre><code>Sending down %d numbers</code></pre>", updateCount),
-		datastar.WithSelectorID("appendhere"), datastar.WithModeInner(), datastar.WithModeAppend())
-	for range updateCount {
-		sse.PatchElements(fmt.Sprintf("<pre><code>%d</code></pre>", rand.Intn(100)),
-			datastar.WithSelectorID("appendhere"), datastar.WithModeInner(), datastar.WithModeAppend())
-		time.Sleep(1000 * time.Millisecond)
-	}
-}
-
 func main() {
 	mux := http.NewServeMux()
 
@@ -47,10 +33,8 @@ func main() {
 			http.StripPrefix("/static",
 				http.FileServer(http.Dir("static")))))
 
-	// Your other routes...
-
 	mux.Handle("/", templ.Handler(components.Index()))
-	mux.Handle("/formendpoint", http.HandlerFunc(handleTest))
+	mux.Handle("/formendpoint", http.HandlerFunc(handlers.HandleTest))
 
 	fmt.Println("Listening on :8080")
 	log.Fatal(http.ListenAndServe(":8080", mux))
