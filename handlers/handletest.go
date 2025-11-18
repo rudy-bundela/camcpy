@@ -3,21 +3,44 @@ package handlers
 
 import (
 	"fmt"
-	"math/rand"
+	"log"
 	"net/http"
-	"time"
+	"net/url"
+	"os/exec"
+	"strings"
 
 	"github.com/starfederation/datastar-go/datastar"
 )
 
 func HandleTest(w http.ResponseWriter, r *http.Request) {
-	sse := datastar.NewSSE(w, r)
-	updateCount := rand.Intn(10) + 3
-	sse.PatchElements(fmt.Sprintf("<pre><code>Sending down %d numbers</code></pre>", updateCount),
-		datastar.WithSelectorID("appendhere"), datastar.WithModeInner(), datastar.WithModeAppend())
-	for range updateCount {
-		sse.PatchElements(fmt.Sprintf("<pre><code>%d</code></pre>", rand.Intn(100)),
-			datastar.WithSelectorID("appendhere"), datastar.WithModeInner(), datastar.WithModeAppend())
-		time.Sleep(1000 * time.Millisecond)
+	if err := r.ParseForm(); err != nil {
+		log.Fatal(err)
 	}
+	fmt.Println(r.Form)
+	formvalues := r.Form
+
+	sse := datastar.NewSSE(w, r)
+	resultingOutput := runCommand(formvalues)
+	alertOutput := fmt.Sprintf("console.log('%s')", resultingOutput)
+	alertOutput = strings.ReplaceAll(alertOutput, "\n", "")
+	fmt.Println(alertOutput)
+
+	if err := sse.ExecuteScript(alertOutput); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func runCommand(formvalues url.Values) (resultingoutput string) {
+	for k, v := range formvalues {
+		fmt.Println(k, v)
+	}
+	cmd := exec.Command("echo", formvalues.Get("port"), formvalues.Get("code"))
+
+	output, err := cmd.Output()
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("Command output: %s", output)
+	return string(output)
 }

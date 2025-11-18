@@ -1,37 +1,27 @@
 package components
 
-templ inputField(heading, placeholder string) {
+templ inputField(heading, placeholder, name string) {
 	<label class="label">{ heading }</label>
-	<input type="email" class="input" min="" placeholder={ placeholder }/>
+	<input class="input" min="" name={ name } placeholder={ placeholder }/>
 }
 
 templ pairForm() {
 	<div class="flex items-center mt-8 justify-center">
-		<fieldset class="join-item fieldset bg-base-200 border-base-300 rounded-box w-xs border p-4 flex-col justify-center">
+  <form>
+		<fieldset class="join-item fieldset bg-base-200 border-base-300 rounded-box m-auto border p-4 flex-col justify-center">
 			<legend class="fieldset-legend">Pairing Details</legend>
-			@inputField("IP Address", "e.g 192.168.0.1")
-			@inputField("Port Number", "00000 (5-digit number)")
-			@inputField("Pairing Code", "000000 (6-digit number)")
-			<button class="btn btn-neutral mt-4">Pair with Device</button>
-			<button class="btn btn-neutral mt-4" data-on:click="@get('/formendpoint', { requestCancellation: 'disabled',})">
+
+			@inputField("IP Address", "e.g 192.168.0.1", "ipaddr")
+			@inputField("Port Number", "00000 (5-digit number)", "port")
+			@inputField("Pairing Code", "000000 (6-digit number)", "code")
+
+			<button class="btn btn-neutral mt-4" data-on:click="@get('/formendpoint', { contentType: 'form'})">
 				Test
 				datastar
 			</button>
-		</fieldset>
-	</div>
-	<div class="flex items-center justify-center">
-		@codePen()
-	</div>
-}
 
-templ codePen() {
-	<div class="mockup-code mt-8 w-2xs">
-		<div class="flex items-center justify-center overflow-y-auto max-h-20">
-			<div id="appendhere">
-				<pre><code>4</code></pre>
-				<pre><code>5</code></pre>
-				<pre><code>6</code></pre>
-			</div>
-		</div>
+		</fieldset>
+    </form>
 	</div>
+  <div id="hello"></div>
 }
