@@ -35,9 +35,10 @@ func HandleTest(w http.ResponseWriter, r *http.Request) {
 
 func runCommand(formvalues url.Values) (resultingoutput string) {
 	deviceAddress := fmt.Sprintf("%s:%s", formvalues.Get("ipaddr"), formvalues.Get("port"))
-	fmt.Printf("Device address = %s\n", deviceAddress)
+	deviceCode := formvalues.Get("code")
+	fmt.Printf("Device address = %s; code = %s\n", deviceAddress, deviceCode)
 
-	cmd := exec.Command("echo", "pair", deviceAddress)
+	cmd := exec.Command("adb", "pair", deviceAddress, deviceCode)
 
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
@@ -61,28 +62,28 @@ func runCommand(formvalues url.Values) (resultingoutput string) {
 		log.Panicf("Error starting adb pair command: %v\n", err)
 	}
 
-	fmt.Printf("ADB starting...")
-
-	scanner := bufio.NewScanner(stdout)
 	go func() {
-		fmt.Println("printing from scanner")
+		scanner := bufio.NewScanner(stdout)
 		for scanner.Scan() {
-			line := scanner.Text()
-			fmt.Printf("ADB output: %s\n", line)
+			fmt.Println("Scanner stdout output = ", scanner.Text())
+		}
+	}()
+
+	go func() {
+		scanner := bufio.NewScanner(stderr)
+		for scanner.Scan() {
+			fmt.Println("Scanner stderr output = ", scanner.Text())
 		}
 	}()
 
 	errScanner := bufio.NewScanner(stderr)
-	go func() {
-		for errScanner.Scan() {
-			fmt.Printf("ADB Error: %s\n", errScanner.Text())
-		}
-	}()
+
+	for errScanner.Scan() {
+		fmt.Println("errScanner output = ", errScanner.Text())
+	}
 
 	if err := cmd.Wait(); err != nil {
 		fmt.Printf("adb pair command finished with error: %v\n", err)
-	} else {
-		fmt.Println("adb pair command executed successfully.")
 	}
 
 	return "hello"
