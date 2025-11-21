@@ -1,0 +1,28 @@
+package components
+
+// templ inputField(heading, placeholder, name string) {
+// <label class="label">{ heading }</label>
+// <input class="input" min="" name={ name } placeholder={ placeholder } />
+// }
+templ ConnectForm() {
+<div id="connectform" class="flex items-center mt-8 justify-center">
+  <form>
+    <fieldset
+      class="join-item fieldset bg-base-200 border-base-300 rounded-box m-auto border p-4 flex-col justify-center">
+      <legend class="fieldset-legend">Connecting Details</legend>
+      @inputField("IP Address", "e.g 192.168.0.1", "ipaddr")
+      @inputField("Port Number", "00000 (5-digit number)", "port")
+      <button class="btn btn-neutral mt-4" data-on:click="@get('/pairingendpoint', { contentType: 'form'})"
+        data-indicator:fetching data-attr:disabled="$fetching">
+        <span data-class="{'loading': $fetching, 'loading-dots': $fetching}"></span>
+        Connect ADB
+      </button>
+      <button class="btn btn-neutral mt-4" data-on:click="@get('/')" data-indicator:fetching
+        data-attr:disabled="$fetching">
+        <span data-class="{'loading': $fetching, 'loading-dots': $fetching}"></span>
+        Pair again
+      </button>
+    </fieldset>
+  </form>
+</div>
+}
