@@ -13,22 +13,25 @@ import (
 	"github.com/starfederation/datastar-go/datastar"
 )
 
-func HandleTest(w http.ResponseWriter, r *http.Request) {
+func HandlePairing(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		log.Println(err)
 	}
 	formvalues := r.Form
 
-	// TODO: Form validation
-
 	sse := datastar.NewSSE(w, r)
-	resultingOutput, _ := runCommand(formvalues)
-	if err := sse.ConsoleLog("Returned from runCommand"); err != nil {
-		log.Println(err)
+	resultingOutput, err := runCommand(formvalues)
+	fmt.Println(string(resultingOutput), "\bError =", err)
+	if err == nil {
+		sse.PatchElementTempl(components.ConnectForm(), datastar.WithSelectorID("pairform"))
 	}
-	newComponent := components.CodePen(string(resultingOutput))
 
-	if err := sse.PatchElementTempl(newComponent); err != nil {
+	outputSlice := make([]string, 0, 10)
+	outputSlice = append(outputSlice, string(resultingOutput))
+
+	locInner := components.CodePen(outputSlice)
+
+	if err := sse.PatchElementTempl(locInner); err != nil {
 		log.Println(err)
 	}
 }
