@@ -1,13 +1,13 @@
 package components
 
-templ codePen() {
-	<div class="mockup-code mt-8 w-1/2">
-		<div class="flex items-center justify-center overflow-y-auto max-h-20">
-			<div id="appendhere">
-				<pre><code>4</code></pre>
-				<pre><code>5</code></pre>
-				<pre><code>6</code></pre>
-			</div>
-		</div>
-	</div>
+templ CodePen(display string) {
+<div id="hello" class="flex items-center justify-center">
+  <div class="mockup-code mt-8 w-1/2">
+    <div class="flex items-center justify-center overflow-y-auto max-h-20">
+      <div id="appendhere">
+        <pre><code>{ display }</code></pre>
+      </div>
+    </div>
+  </div>
+</div>
 }
