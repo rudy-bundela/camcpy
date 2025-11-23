@@ -2,7 +2,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 
@@ -37,6 +36,8 @@ func main() {
 	mux.Handle("/", templ.Handler(components.Index()))
 	mux.Handle("/pairingendpoint", http.HandlerFunc(handlers.HandlePairing))
 	mux.Handle("/adbconnect", http.HandlerFunc(handlers.HandleADBConnect))
+	mux.Handle("/setupcamerasse", http.HandlerFunc(handlers.HandleSetupCamera))
+	mux.Handle("/setupcamera", templ.Handler(components.Layout(components.SetupCamera())))
 	mux.Handle("/connectendpoint", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sse := datastar.NewSSE(w, r)
 		if err := sse.PatchElementTempl(components.ConnectForm(), datastar.WithSelectorID("pairform")); err != nil {
