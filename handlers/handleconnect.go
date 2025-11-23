@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"os/exec"
 
@@ -12,7 +13,7 @@ import (
 
 func HandleADBConnect(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
-		fmt.Println("Error in parsing form: ", err)
+		log.Println("Error in parsing form: ", err)
 	}
 
 	IPAddress := r.Form.Get("ipaddr")
@@ -22,13 +23,13 @@ func HandleADBConnect(w http.ResponseWriter, r *http.Request) {
 
 	sse := datastar.NewSSE(w, r)
 	if err := sse.ConsoleLog(logstring); err != nil {
-		fmt.Println("Error in SSE console log: ", err)
+		log.Println("Error in SSE console log: ", err)
 	}
 
 	ADBoutput, err := runADBConnect(IPAddress, Port)
 	if err != nil {
-		fmt.Println("ADB output: ", string(ADBoutput))
-		fmt.Println("ADB connect returned an error: ", err)
+		log.Println("ADB output: ", string(ADBoutput))
+		log.Println("ADB connect returned an error: ", err)
 		return
 	}
 
@@ -37,7 +38,11 @@ func HandleADBConnect(w http.ResponseWriter, r *http.Request) {
 	locInner := components.CodePen(codepenInner)
 
 	if err := sse.PatchElementTempl(locInner); err != nil {
-		fmt.Println(err)
+		log.Println(err)
+	}
+
+	if err := sse.Redirect("/setupcamera"); err != nil {
+		log.Println("Error redirecting to setupcamera, error = ", err)
 	}
 }
 
@@ -45,9 +50,9 @@ func runADBConnect(ipaddr, port string) (out []byte, err error) {
 	cmd := exec.Command("adb", "connect", (ipaddr + ":" + port))
 	out, err = cmd.Output()
 	if err != nil {
-		fmt.Println("Error running command: ", err)
+		log.Println("Error running command: ", err)
 	}
-	fmt.Println("Command output: ", string(out))
-	fmt.Println("Error running command: ", err)
+	log.Println("Command output: ", string(out))
+	log.Println("Error running command: ", err)
 	return out, err
 }

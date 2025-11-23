@@ -40,13 +40,13 @@ func main() {
 	mux.Handle("/connectendpoint", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sse := datastar.NewSSE(w, r)
 		if err := sse.PatchElementTempl(components.ConnectForm(), datastar.WithSelectorID("pairform")); err != nil {
-			fmt.Println("Error patching form templ component: ", err)
+			log.Println("Error patching form templ component: ", err)
 		}
 		if err := sse.PatchElementTempl(components.CodePen([]string{"Waiting for input..."})); err != nil {
-			fmt.Println("Error patching codepen templ component: ", err)
+			log.Println("Error patching codepen templ component: ", err)
 		}
 	}))
 
-	fmt.Println("Listening on :8080")
+	log.Println("Listening on :8080")
 	log.Fatal(http.ListenAndServe(":8080", mux))
 }
