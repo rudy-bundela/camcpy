@@ -24,6 +24,16 @@ func disableCacheInDevMode(next http.Handler) http.Handler {
 	})
 }
 
+func handleConnectedEndpoint(w http.ResponseWriter, r *http.Request) {
+	sse := datastar.NewSSE(w, r)
+	if err := sse.PatchElementTempl(components.ConnectForm(), datastar.WithSelectorID("pairform")); err != nil {
+		log.Println("Error patching form templ component: ", err)
+	}
+	if err := sse.PatchElementTempl(components.CodePen([]string{"Waiting for input..."})); err != nil {
+		log.Println("Error patching codepen templ component: ", err)
+	}
+}
+
 func main() {
 	mux := http.NewServeMux()
 
@@ -38,15 +48,7 @@ func main() {
 	mux.Handle("/adbconnect", http.HandlerFunc(handlers.HandleADBConnect))
 	mux.Handle("/setupcamerasse", http.HandlerFunc(handlers.HandleSetupCamera))
 	mux.Handle("/setupcamera", templ.Handler(components.Layout(components.SetupCamera())))
-	mux.Handle("/connectendpoint", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		sse := datastar.NewSSE(w, r)
-		if err := sse.PatchElementTempl(components.ConnectForm(), datastar.WithSelectorID("pairform")); err != nil {
-			log.Println("Error patching form templ component: ", err)
-		}
-		if err := sse.PatchElementTempl(components.CodePen([]string{"Waiting for input..."})); err != nil {
-			log.Println("Error patching codepen templ component: ", err)
-		}
-	}))
+	mux.Handle("/connectendpoint", http.HandlerFunc(handleConnectedEndpoint))
 
 	log.Println("Listening on :8080")
 	log.Fatal(http.ListenAndServe(":8080", mux))
