@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"fmt"
+	"encoding/json"
 	"log"
 	"net/http"
 	"os/exec"
@@ -23,7 +23,12 @@ func HandleSetupCamera(w http.ResponseWriter, r *http.Request) {
 
 	output, err := runGetScrcpyDetails()
 	if err == nil {
-		outputStringSlice = append(outputStringSlice, string(output))
+		scrcpyOutput, err := ParseScrcpyOutput(string(output))
+		if err != nil {
+			log.Printf("Error parsing output from scrcpy: %v\n", err)
+		}
+		jsonData, _ := json.MarshalIndent(scrcpyOutput, "", "	")
+		outputStringSlice = append(outputStringSlice, string(jsonData))
 		if err := sse.ConsoleLogf("Output from scrcpy: %v", outputStringSlice); err != nil {
 			log.Println("Error sending log to console: ", err)
 		}
@@ -43,6 +48,6 @@ func HandleSetupCamera(w http.ResponseWriter, r *http.Request) {
 func runGetScrcpyDetails() (output []byte, err error) {
 	cmd := exec.Command("scrcpy", "--list-camera-sizes")
 	output, err = cmd.Output()
-	fmt.Printf("Output from scrcpy: %v", string(output))
+	log.Printf("Output from scrcpy: %v", string(output))
 	return output, err
 }
