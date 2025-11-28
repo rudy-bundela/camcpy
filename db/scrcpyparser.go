@@ -1,4 +1,5 @@
-package handlers
+// Package db contains the in-memory struct
+package db
 
 import (
 	"bufio"
@@ -32,7 +33,7 @@ type Camera struct {
 	Sizes    []SizeConfig `json:"sizes"`
 }
 
-func ParseScrcpyOutput(input string) (*ScrcpyInfo, error) {
+func (s *ScrcpyInfo) ParseScrcpyOutput(input string) (*ScrcpyInfo, error) {
 	scanner := bufio.NewScanner(strings.NewReader(input))
 
 	// Regex patterns
@@ -48,9 +49,7 @@ func ParseScrcpyOutput(input string) (*ScrcpyInfo, error) {
 
 	reHighSpeed := regexp.MustCompile(`High speed capture`)
 
-	info := &ScrcpyInfo{
-		Cameras: []Camera{},
-	}
+	info := s
 
 	var currentCamera *Camera
 
