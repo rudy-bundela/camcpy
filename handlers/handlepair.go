@@ -21,9 +21,11 @@ func HandlePairing(w http.ResponseWriter, r *http.Request) {
 
 	sse := datastar.NewSSE(w, r)
 	resultingOutput, err := runCommand(formvalues)
-	fmt.Println(string(resultingOutput), "\bError =", err)
+	log.Println(string(resultingOutput), "\bError =", err)
 	if err == nil {
-		sse.PatchElementTempl(components.ConnectForm(), datastar.WithSelectorID("pairform"))
+		if err := sse.PatchElementTempl(components.ConnectForm(), datastar.WithSelectorID("pairform")); err != nil {
+			log.Println("Error in patching ConnectForm component: ", err)
+		}
 	}
 
 	outputSlice := make([]string, 0, 10)
@@ -42,7 +44,7 @@ func runCommand(formvalues url.Values) (resultingOutput []byte, err error) {
 	fmt.Printf("Device address = %s; code = %s\n", deviceAddress, deviceCode)
 
 	cmd := exec.Command("adb", "pair", deviceAddress, deviceCode)
-	fmt.Println("Running command...")
+	log.Println("Running command...")
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {

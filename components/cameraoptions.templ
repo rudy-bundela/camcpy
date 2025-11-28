@@ -1,0 +1,7 @@
+package components
+
+templ OverallCameraComponent(data []byte) {
+<div data-signals={ templ.JSONString(data) }></div>
+<div data-text="$device_name"></div>
+<div data-text="$cameras"></div>
+}

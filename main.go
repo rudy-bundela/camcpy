@@ -2,7 +2,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 
@@ -25,6 +24,16 @@ func disableCacheInDevMode(next http.Handler) http.Handler {
 	})
 }
 
+func handleConnectedEndpoint(w http.ResponseWriter, r *http.Request) {
+	sse := datastar.NewSSE(w, r)
+	if err := sse.PatchElementTempl(components.ConnectForm(), datastar.WithSelectorID("pairform")); err != nil {
+		log.Println("Error patching form templ component: ", err)
+	}
+	if err := sse.PatchElementTempl(components.CodePen([]string{"Waiting for input..."})); err != nil {
+		log.Println("Error patching codepen templ component: ", err)
+	}
+}
+
 func main() {
 	mux := http.NewServeMux()
 
@@ -36,12 +45,11 @@ func main() {
 
 	mux.Handle("/", templ.Handler(components.Index()))
 	mux.Handle("/pairingendpoint", http.HandlerFunc(handlers.HandlePairing))
-	mux.Handle("/connectendpoint", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		sse := datastar.NewSSE(w, r)
-		sse.PatchElementTempl(components.ConnectForm(), datastar.WithSelectorID("pairform"))
-		sse.PatchElementTempl(components.CodePen([]string{"Waiting for input..."}))
-	}))
+	mux.Handle("/adbconnect", http.HandlerFunc(handlers.HandleADBConnect))
+	mux.Handle("/setupcamerasse", http.HandlerFunc(handlers.HandleSetupCamera))
+	mux.Handle("/setupcamera", templ.Handler(components.Layout(components.SetupCamera())))
+	mux.Handle("/connectendpoint", http.HandlerFunc(handleConnectedEndpoint))
 
-	fmt.Println("Listening on :8080")
+	log.Println("Listening on :8080")
 	log.Fatal(http.ListenAndServe(":8080", mux))
 }
