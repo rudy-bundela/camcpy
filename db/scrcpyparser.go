@@ -3,11 +3,17 @@ package db
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
+	"log"
+	"net/http"
+	"os/exec"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/starfederation/datastar-go/datastar"
 )
 
 type ScrcpyInfo struct {
@@ -15,9 +21,10 @@ type ScrcpyInfo struct {
 	Cameras    []Camera `json:"cameras"`
 }
 
-type FPSOption struct {
-	Value     int  `json:"value"`
-	HighSpeed bool `json:"high_speed"`
+type Camera struct {
+	ID       string       `json:"id"`
+	Position string       `json:"position"`
+	Sizes    []SizeConfig `json:"sizes"`
 }
 
 type SizeConfig struct {
@@ -27,13 +34,57 @@ type SizeConfig struct {
 	FPS        []FPSOption `json:"fps"`
 }
 
-type Camera struct {
-	ID       string       `json:"id"`
-	Position string       `json:"position"`
-	Sizes    []SizeConfig `json:"sizes"`
+type FPSOption struct {
+	Value     int  `json:"value"`
+	HighSpeed bool `json:"high_speed"`
 }
 
-func (s *ScrcpyInfo) ParseScrcpyOutput(input string) (*ScrcpyInfo, error) {
+func RunGetScrcpyDetails() (output []byte, err error) {
+	cmd := exec.Command("scrcpy", "--list-camera-sizes")
+	output, err = cmd.Output()
+	return output, err
+}
+
+func (s *ScrcpyInfo) HandleGetCameraOptions(w http.ResponseWriter, r *http.Request) {
+	sse := datastar.NewSSE(w, r, datastar.WithCompression(datastar.WithBrotli(datastar.WithBrotliLGWin(0))))
+
+	if err := sse.ConsoleLogf("Getting scrcpy info"); err != nil {
+		log.Println("Error console logging")
+	}
+
+	scrcpyOutput, err := RunGetScrcpyDetails()
+	if err != nil {
+		log.Println("Error getting information from --list-camera-sizes: ", err)
+	}
+
+	if err := sse.ConsoleLogf("Got scrcpy info; now parsing the information"); err != nil {
+		log.Println("Error console logging")
+	}
+
+	if err := s.ParseScrcpyOutput(string(scrcpyOutput)); err != nil {
+		log.Println("Error parsing scrcpy output: ", err)
+	}
+
+	if err := sse.ConsoleLogf("Parsed scrcpy info; now printing struct"); err != nil {
+		log.Println("Error console logging")
+	}
+
+	if err := sse.ConsoleLogf("%v", s); err != nil {
+		log.Println("Error console logging")
+	}
+}
+
+func (s *ScrcpyInfo) TestEndpoint(w http.ResponseWriter, r *http.Request) {
+	log.Println(s.DeviceName)
+	log.Println(s.Cameras)
+
+	w.Header().Set("content-type", "application/json")
+	if err := json.NewEncoder(w).Encode(s); err != nil {
+		log.Println(err)
+	}
+}
+
+func (s *ScrcpyInfo) ParseScrcpyOutput(input string) error {
 	scanner := bufio.NewScanner(strings.NewReader(input))
 
 	// Regex patterns
@@ -165,7 +216,7 @@ func (s *ScrcpyInfo) ParseScrcpyOutput(input string) (*ScrcpyInfo, error) {
 
 	finalizeCamera() // Save the last camera
 
-	return info, nil
+	return nil
 }
 
 // Helper to parse "15, 24, 30" into []int

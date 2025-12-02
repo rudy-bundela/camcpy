@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"camcpy/main/components"
+	"camcpy/main/db"
 	"camcpy/main/handlers"
 
 	"github.com/a-h/templ"
@@ -43,12 +44,15 @@ func main() {
 			http.StripPrefix("/static",
 				http.FileServer(http.Dir("static")))))
 
+	scrcpyStruct := db.ScrcpyInfo{}
+
 	mux.Handle("/", templ.Handler(components.Index()))
 	mux.Handle("/pairingendpoint", http.HandlerFunc(handlers.HandlePairing))
 	mux.Handle("/adbconnect", http.HandlerFunc(handlers.HandleADBConnect))
-	mux.Handle("/setupcamerasse", http.HandlerFunc(handlers.HandleSetupCamera))
+	mux.Handle("/setupcamerasse", http.HandlerFunc(scrcpyStruct.HandleGetCameraOptions))
 	mux.Handle("/setupcamera", templ.Handler(components.Layout(components.SetupCamera())))
 	mux.Handle("/connectendpoint", http.HandlerFunc(handleConnectedEndpoint))
+	mux.Handle("/test", http.HandlerFunc(scrcpyStruct.TestEndpoint))
 
 	log.Println("Listening on :8080")
 	log.Fatal(http.ListenAndServe(":8080", mux))
