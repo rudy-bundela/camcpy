@@ -1,5 +1,5 @@
-// Package db contains the in-memory struct
-package db
+// Package components contains the in-memory struct
+package components
 
 import (
 	"bufio"
@@ -70,6 +70,10 @@ func (s *ScrcpyInfo) HandleGetCameraOptions(w http.ResponseWriter, r *http.Reque
 	}
 
 	if err := sse.ConsoleLogf("%v", s); err != nil {
+		log.Println("Error console logging")
+	}
+
+	if err := sse.PatchElementTempl(Layout(OverallCameraComponent(s))); err != nil {
 		log.Println("Error console logging")
 	}
 }

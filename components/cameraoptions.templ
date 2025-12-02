@@ -1,7 +1,14 @@
 package components
 
-templ OverallCameraComponent(data []byte) {
-<div data-signals={ templ.JSONString(data) }></div>
-<div data-text="$device_name"></div>
-<div data-text="$cameras"></div>
+templ OverallCameraComponent(s *ScrcpyInfo) {
+  <p> { s.DeviceName }</p>
+  <ul>
+  for _, v := range s.Cameras {
+    <li>{ v.ID }</li>
+    <li>{ v.Position }</li>
+    for _, y := range v.Sizes {
+        <li>{ y.Resolution }</li>
+      }
+    }
+  </ul>
 }
