@@ -39,6 +39,12 @@ type FPSOption struct {
 	HighSpeed bool `json:"high_speed"`
 }
 
+type ResolutionOption struct {
+	Value     string // "1920x1080"
+	Label     string // "1920x1080 (High Speed)" or just "1920x1080"
+	HighSpeed bool
+}
+
 func RunGetScrcpyDetails() (output []byte, err error) {
 	cmd := exec.Command("scrcpy", "--list-camera-sizes")
 	output, err = cmd.Output()
@@ -234,4 +240,56 @@ func parseFPSList(input string) []int {
 		}
 	}
 	return result
+}
+
+// GetResolutionsForFPS returns all resolutions that support the specific frame rate.
+// It also returns the specific FPSOption configuration (e.g. to check HighSpeed requirements).
+func (c *Camera) GetResolutionsForFPS(targetFPS int) []ResolutionOption {
+	var options []ResolutionOption
+
+	for _, size := range c.Sizes {
+		for _, fpsOpt := range size.FPS {
+			if fpsOpt.Value == targetFPS {
+				label := size.Resolution
+
+				// Add the lightning bolt if this specific FPS/Res combo needs high speed
+				if fpsOpt.HighSpeed {
+					label += " ⚡"
+				}
+
+				options = append(options, ResolutionOption{
+					Value:     size.Resolution,
+					Label:     label,
+					HighSpeed: fpsOpt.HighSpeed,
+				})
+				// We found the match for this resolution, stop checking other FPSs for this specific size
+				break
+			}
+		}
+	}
+	return options
+}
+
+// GetAvailableFPS returns a sorted list of all unique FPS values supported by this camera.
+func (c *Camera) GetAvailableFPS() []int {
+	uniqueFPS := make(map[int]bool)
+	for _, size := range c.Sizes {
+		for _, fpsOpt := range size.FPS {
+			uniqueFPS[fpsOpt.Value] = true
+		}
+	}
+
+	var sortedFPS []int
+	for fps := range uniqueFPS {
+		sortedFPS = append(sortedFPS, fps)
+	}
+	// Sort ascending
+	for i := 0; i < len(sortedFPS); i++ {
+		for j := i + 1; j < len(sortedFPS); j++ {
+			if sortedFPS[i] > sortedFPS[j] {
+				sortedFPS[i], sortedFPS[j] = sortedFPS[j], sortedFPS[i]
+			}
+		}
+	}
+	return sortedFPS
 }
