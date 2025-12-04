@@ -1,23 +1,30 @@
 package components
 
 templ OverallCameraComponent(s *ScrcpyInfo) {
-  <div class="m-4 p-4 ">
-  <p> { s.DeviceName }</p>
+<div class="m-4 p-4">
+  <p>{ s.DeviceName }</p>
   <ol type="a">
-  for _, v := range s.Cameras {
-    <li>{ v.ID }</li>
-    <li>{ v.Position }</li>
-    @SelectComponent(v.Sizes)
+    for _, camera := range s.Cameras {
+    <li>{ camera.ID }</li>
+    <li>{ camera.Position }</li>
+    @ResolutionComponent(camera.Sizes)
+    @FPSOptions(camera)
     }
   </ol>
-  </div>
+</div>
 }
 
-templ SelectComponent(size []SizeConfig) {
-  <select class="select">
+templ ResolutionComponent(sizes []SizeConfig) {
+<select class="select">
   <option disabled selected>Pick a resolution</option>
-  for _, v := range size {
-    <option>{ v.Resolution }</option>
-    }
-  </select>
+  for _, size := range sizes {
+  <option>{ size.Resolution }</option>
+  }
+</select>
+}
+
+templ FPSOptions(camera Camera) {
+for _, fps := range camera.GetAvailableFPS() {
+<p class="m-4 hover:bg-zinc-600 rounded-2xl">{ fps }</p>
+}
 }
