@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/starfederation/datastar-go/datastar"
 )
@@ -60,7 +61,7 @@ func (s *ScrcpyInfo) HandleGetCameraOptions(w http.ResponseWriter, r *http.Reque
 
 	scrcpyOutput, err := RunGetScrcpyDetails()
 	if err != nil {
-		log.Println("Error getting information from --list-camera-sizes: ", err)
+		runOnScrcpyError(sse, err)
 	}
 
 	if err := sse.ConsoleLogf("Got scrcpy info; now parsing the information"); err != nil {
@@ -292,4 +293,16 @@ func (c *Camera) GetAvailableFPS() []int {
 		}
 	}
 	return sortedFPS
+}
+
+func runOnScrcpyError(sse *datastar.ServerSentEventGenerator, err error) {
+	log.Println("Error getting information from --list-camera-sizes: ", err)
+	for i := range 3 {
+		sse.PatchElementTempl(Layout(CodePen(
+			[]string{fmt.Sprintf("Error getting information from scrcpy, redirecting to pairing page in %d...", 3-i)})))
+		time.Sleep(1 * time.Second)
+	}
+	if err := sse.Redirect("/"); err != nil {
+		log.Println("Error in sse redirect when redirecting from setupcamera")
+	}
 }
