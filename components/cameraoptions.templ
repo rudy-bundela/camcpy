@@ -1,7 +1,36 @@
 package components
 
-templ OverallCameraComponent(data []byte) {
-<div data-signals={ templ.JSONString(data) }></div>
-<div data-text="$device_name"></div>
-<div data-text="$cameras"></div>
+templ OverallCameraComponent(s *ScrcpyInfo) {
+	<div class="m-4 p-4 justify-center">
+		<p>{ s.DeviceName }</p>
+		<ol type="a">
+			for _, camera := range s.Cameras {
+				<div class="card">
+					<div class="card-body">
+						<p>{ camera.ID }</p>
+						<p>{ camera.Position }</p>
+						@FPSOptions(camera)
+						@ResolutionComponent(camera.Sizes)
+					</div>
+				</div>
+			}
+		</ol>
+	</div>
+}
+
+templ ResolutionComponent(sizes []SizeConfig) {
+	<select class="select">
+		<option disabled selected>Pick a resolution</option>
+		for _, size := range sizes {
+			<option>{ size.Resolution }</option>
+		}
+	</select>
+}
+
+templ FPSOptions(camera Camera) {
+	<select class="select">
+		for _, fps := range camera.GetAvailableFPS() {
+			<option>{ fps }</option>
+		}
+	</select>
 }

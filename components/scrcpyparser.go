@@ -1,12 +1,20 @@
-package handlers
+// Package components contains the in-memory struct
+package components
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
+	"log"
+	"net/http"
+	"os/exec"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
+	"time"
+
+	"github.com/starfederation/datastar-go/datastar"
 )
 
 type ScrcpyInfo struct {
@@ -14,9 +22,10 @@ type ScrcpyInfo struct {
 	Cameras    []Camera `json:"cameras"`
 }
 
-type FPSOption struct {
-	Value     int  `json:"value"`
-	HighSpeed bool `json:"high_speed"`
+type Camera struct {
+	ID       string       `json:"id"`
+	Position string       `json:"position"`
+	Sizes    []SizeConfig `json:"sizes"`
 }
 
 type SizeConfig struct {
@@ -26,13 +35,67 @@ type SizeConfig struct {
 	FPS        []FPSOption `json:"fps"`
 }
 
-type Camera struct {
-	ID       string       `json:"id"`
-	Position string       `json:"position"`
-	Sizes    []SizeConfig `json:"sizes"`
+type FPSOption struct {
+	Value     int  `json:"value"`
+	HighSpeed bool `json:"high_speed"`
 }
 
-func ParseScrcpyOutput(input string) (*ScrcpyInfo, error) {
+type ResolutionOption struct {
+	Value     string // "1920x1080"
+	Label     string // "1920x1080 (High Speed)" or just "1920x1080"
+	HighSpeed bool
+}
+
+func RunGetScrcpyDetails() (output []byte, err error) {
+	cmd := exec.Command("scrcpy", "--list-camera-sizes")
+	output, err = cmd.Output()
+	return output, err
+}
+
+func (s *ScrcpyInfo) HandleGetCameraOptions(w http.ResponseWriter, r *http.Request) {
+	sse := datastar.NewSSE(w, r, datastar.WithCompression(datastar.WithBrotli(datastar.WithBrotliLGWin(0))))
+
+	if err := sse.ConsoleLogf("Getting scrcpy info"); err != nil {
+		log.Println("Error console logging")
+	}
+
+	scrcpyOutput, err := RunGetScrcpyDetails()
+	if err != nil {
+		runOnScrcpyError(sse, err)
+	}
+
+	if err := sse.ConsoleLogf("Got scrcpy info; now parsing the information"); err != nil {
+		log.Println("Error console logging")
+	}
+
+	if err := s.ParseScrcpyOutput(string(scrcpyOutput)); err != nil {
+		log.Println("Error parsing scrcpy output: ", err)
+	}
+
+	if err := sse.ConsoleLogf("Parsed scrcpy info; now printing struct"); err != nil {
+		log.Println("Error console logging")
+	}
+
+	if err := sse.ConsoleLogf("%v", s); err != nil {
+		log.Println("Error console logging")
+	}
+
+	if err := sse.PatchElementTempl(Layout(OverallCameraComponent(s))); err != nil {
+		log.Println("Error console logging")
+	}
+}
+
+func (s *ScrcpyInfo) TestEndpoint(w http.ResponseWriter, r *http.Request) {
+	log.Println(s.DeviceName)
+	log.Println(s.Cameras)
+
+	w.Header().Set("content-type", "application/json")
+	if err := json.NewEncoder(w).Encode(s); err != nil {
+		log.Println(err)
+	}
+}
+
+func (s *ScrcpyInfo) ParseScrcpyOutput(input string) error {
 	scanner := bufio.NewScanner(strings.NewReader(input))
 
 	// Regex patterns
@@ -48,9 +111,7 @@ func ParseScrcpyOutput(input string) (*ScrcpyInfo, error) {
 
 	reHighSpeed := regexp.MustCompile(`High speed capture`)
 
-	info := &ScrcpyInfo{
-		Cameras: []Camera{},
-	}
+	info := s
 
 	var currentCamera *Camera
 
@@ -166,7 +227,7 @@ func ParseScrcpyOutput(input string) (*ScrcpyInfo, error) {
 
 	finalizeCamera() // Save the last camera
 
-	return info, nil
+	return nil
 }
 
 // Helper to parse "15, 24, 30" into []int
@@ -180,4 +241,68 @@ func parseFPSList(input string) []int {
 		}
 	}
 	return result
+}
+
+// GetResolutionsForFPS returns all resolutions that support the specific frame rate.
+// It also returns the specific FPSOption configuration (e.g. to check HighSpeed requirements).
+func (c *Camera) GetResolutionsForFPS(targetFPS int) []ResolutionOption {
+	var options []ResolutionOption
+
+	for _, size := range c.Sizes {
+		for _, fpsOpt := range size.FPS {
+			if fpsOpt.Value == targetFPS {
+				label := size.Resolution
+
+				// Add the lightning bolt if this specific FPS/Res combo needs high speed
+				if fpsOpt.HighSpeed {
+					label += " ⚡"
+				}
+
+				options = append(options, ResolutionOption{
+					Value:     size.Resolution,
+					Label:     label,
+					HighSpeed: fpsOpt.HighSpeed,
+				})
+				// We found the match for this resolution, stop checking other FPSs for this specific size
+				break
+			}
+		}
+	}
+	return options
+}
+
+// GetAvailableFPS returns a sorted list of all unique FPS values supported by this camera.
+func (c *Camera) GetAvailableFPS() []int {
+	uniqueFPS := make(map[int]bool)
+	for _, size := range c.Sizes {
+		for _, fpsOpt := range size.FPS {
+			uniqueFPS[fpsOpt.Value] = true
+		}
+	}
+
+	var sortedFPS []int
+	for fps := range uniqueFPS {
+		sortedFPS = append(sortedFPS, fps)
+	}
+	// Sort ascending
+	for i := 0; i < len(sortedFPS); i++ {
+		for j := i + 1; j < len(sortedFPS); j++ {
+			if sortedFPS[i] > sortedFPS[j] {
+				sortedFPS[i], sortedFPS[j] = sortedFPS[j], sortedFPS[i]
+			}
+		}
+	}
+	return sortedFPS
+}
+
+func runOnScrcpyError(sse *datastar.ServerSentEventGenerator, err error) {
+	log.Println("Error getting information from --list-camera-sizes: ", err)
+	for i := range 3 {
+		sse.PatchElementTempl(Layout(CodePen(
+			[]string{fmt.Sprintf("Error getting information from scrcpy, redirecting to pairing page in %d...", 3-i)})))
+		time.Sleep(1 * time.Second)
+	}
+	if err := sse.Redirect("/"); err != nil {
+		log.Println("Error in sse redirect when redirecting from setupcamera")
+	}
 }
