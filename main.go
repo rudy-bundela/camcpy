@@ -45,7 +45,7 @@ func main() {
 
 	scrcpyStruct := components.ScrcpyInfo{}
 
-	mux.Handle("/", templ.Handler(components.Index()))
+	mux.Handle("/", templ.Handler(components.Welcome()))
 	mux.Handle("/pairingendpoint", http.HandlerFunc(handlers.HandlePairing))
 	mux.Handle("/adbconnect", http.HandlerFunc(handlers.HandleADBConnect))
 	mux.Handle("/setupcamerasse", http.HandlerFunc(scrcpyStruct.HandleGetCameraOptions))

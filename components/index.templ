@@ -1,6 +1,12 @@
 // components/index.templ
 package components
 
-templ Index() {
-@Layout(pairForm(), CodePen([]string{"Waiting for input..."}))
+templ Welcome() {
+	@Layout(pairForm(), CodePen([]string{"Waiting for input..."}), CarouselComponent())
+}
+
+templ CarouselComponent() {
+	<div class="justify-end">
+		<button class="btn btn-soft btn-wide">Pairing</button>
+	</div>
 }
