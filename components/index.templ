@@ -2,11 +2,23 @@
 package components
 
 templ Welcome() {
-	@Layout(pairForm(), CodePen([]string{"Waiting for input..."}), CarouselComponent())
+	@Layout(CarouselComponent())
+}
+
+templ PairformComponent() {
+	@Layout(pairForm(), CodePen([]string{"Waiting for input..."}))
+}
+
+templ ConnectformComponent() {
+	@Layout(ConnectForm(), CodePen([]string{"Waiting for input..."}))
 }
 
 templ CarouselComponent() {
-	<div class="justify-end">
-		<button class="btn btn-soft btn-wide">Pairing</button>
+	//TODO
+	<div class="flex justify-center p-8">
+		<h1>HELLO</h1>
+	</div>
+	<div class="flex justify-center p-8 h-screen">
+		<a class="btn btn-soft btn-wide" href="/pair">Begin Pairing</a>
 	</div>
 }
