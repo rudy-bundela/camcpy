@@ -53,6 +53,7 @@ func RunGetScrcpyDetails() (output []byte, err error) {
 }
 
 func (s *ScrcpyInfo) HandleGetCameraOptions(w http.ResponseWriter, r *http.Request) {
+	// TODO fix this nonsense
 	sse := datastar.NewSSE(w, r, datastar.WithCompression(datastar.WithBrotli(datastar.WithBrotliLGWin(0))))
 
 	if err := sse.ConsoleLogf("Getting scrcpy info"); err != nil {
@@ -302,7 +303,7 @@ func runOnScrcpyError(sse *datastar.ServerSentEventGenerator, err error) {
 			[]string{fmt.Sprintf("Error getting information from scrcpy, redirecting to pairing page in %d...", 3-i)})))
 		time.Sleep(1 * time.Second)
 	}
-	if err := sse.Redirect("/"); err != nil {
+	if err := sse.Redirect("/pair"); err != nil {
 		log.Println("Error in sse redirect when redirecting from setupcamera")
 	}
 }
