@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os/exec"
+	"strings"
 
 	"camcpy/main/components"
 
@@ -33,12 +34,18 @@ func HandleADBConnect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ADBoutputstring := string(ADBoutput)
+
 	codepenInner := make([]string, 0, 10)
-	codepenInner = append(codepenInner, string(ADBoutput))
+	codepenInner = append(codepenInner, ADBoutputstring)
 	locInner := components.CodePen(codepenInner)
 
 	if err := sse.PatchElementTempl(locInner); err != nil {
 		log.Println(err)
+	}
+
+	if !strings.Contains(ADBoutputstring, "connected to") {
+		return
 	}
 
 	if err := sse.Redirect("/setupcamera"); err != nil {
@@ -48,11 +55,10 @@ func HandleADBConnect(w http.ResponseWriter, r *http.Request) {
 
 func runADBConnect(ipaddr, port string) (out []byte, err error) {
 	cmd := exec.Command("adb", "connect", (ipaddr + ":" + port))
-	out, err = cmd.Output()
+	out, err = cmd.CombinedOutput()
 	if err != nil {
 		log.Println("Error running command: ", err)
 	}
-	log.Println("Command output: ", string(out))
-	log.Println("Error running command: ", err)
+	log.Println("ADBoutput = ", string(out))
 	return out, err
 }
