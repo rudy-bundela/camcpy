@@ -50,7 +50,6 @@ func main() {
 	mux.Handle("/", templ.Handler(components.Welcome()))
 	mux.Handle("/pair", templ.Handler(components.PairformComponent()))
 	mux.Handle("/connect", templ.Handler(components.ConnectformComponent()))
-	// TODO need to check connect form details so that it rejects empty fields instead of going to setupcamera directly
 
 	mux.Handle("/cameraoptions", http.HandlerFunc(handlers.HandlePairing))
 	mux.Handle("/mediamtxoptions", http.HandlerFunc(handlers.HandlePairing))
