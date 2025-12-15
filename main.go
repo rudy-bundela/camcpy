@@ -46,7 +46,7 @@ func main() {
 	scrcpyStruct := components.ScrcpyInfo{}
 
 	// Main routes
-	// TODO create components for this section
+	// TODO: create proper components for this section
 	mux.Handle("/", templ.Handler(components.Welcome()))
 	mux.Handle("/pair", templ.Handler(components.PairformComponent()))
 	mux.Handle("/connect", templ.Handler(components.ConnectformComponent()))

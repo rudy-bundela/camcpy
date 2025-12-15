@@ -53,12 +53,8 @@ func RunGetScrcpyDetails() (output []byte, err error) {
 }
 
 func (s *ScrcpyInfo) HandleGetCameraOptions(w http.ResponseWriter, r *http.Request) {
-	// TODO fix this nonsense
+	// TODO: fix this nonsense
 	sse := datastar.NewSSE(w, r, datastar.WithCompression(datastar.WithBrotli(datastar.WithBrotliLGWin(0))))
-
-	if err := sse.ConsoleLogf("Getting scrcpy info"); err != nil {
-		log.Println("Error console logging")
-	}
 
 	scrcpyOutput, err := RunGetScrcpyDetails()
 	if err != nil {

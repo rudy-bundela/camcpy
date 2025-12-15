@@ -31,14 +31,14 @@ func HandleADBConnect(w http.ResponseWriter, r *http.Request) {
 
 	codepenInner := make([]string, 0, 10)
 
-	ADBoutput, err := runADBConnect(IPAddress, Port)
+	ADBoutput, err := runADBConnectWithContext(IPAddress, Port)
+	ADBoutputstring := string(ADBoutput)
+
 	if err != nil {
-		log.Println("ADB output: ", string(ADBoutput))
+		log.Println("ADB output: ", ADBoutputstring)
 		log.Println("ADB connect returned an error: ", err)
 		codepenInner = append(codepenInner, err.Error())
 	}
-
-	ADBoutputstring := string(ADBoutput)
 
 	codepenInner = append(codepenInner, ADBoutputstring)
 	locInner := components.CodePen(codepenInner)
@@ -56,7 +56,7 @@ func HandleADBConnect(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func runADBConnect(ipaddr, port string) (out []byte, err error) {
+func runADBConnectWithContext(ipaddr, port string) (out []byte, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
