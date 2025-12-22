@@ -44,7 +44,6 @@ func main() {
 				http.FileServer(http.Dir("static")))))
 
 	scrcpyStruct := components.ScrcpyInfo{}
-
 	// Main routes
 	// TODO: create proper components for this section
 	mux.Handle("/", templ.Handler(components.Welcome()))
