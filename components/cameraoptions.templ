@@ -1,7 +1,7 @@
 package components
 
 templ OverallCameraComponent(s *ScrcpyInfo) {
-	<div class="m-4 p-4 justify-center">
+	<div class="m-4 p-4 justify-center" data-on:change="@get('/test')">
 		<p>{ s.DeviceName }</p>
 		<ol type="a">
 			for _, camera := range s.Cameras {
@@ -14,12 +14,14 @@ templ OverallCameraComponent(s *ScrcpyInfo) {
 					</div>
 				</div>
 			}
+			<!-- Display all signals -->
+			<pre data-json-signals></pre>
 		</ol>
 	</div>
 }
 
 templ ResolutionComponent(sizes []SizeConfig) {
-	<select class="select">
+	<select class="select" data-bind:resolution>
 		<option disabled selected>Pick a resolution</option>
 		for _, size := range sizes {
 			<option>{ size.Resolution }</option>
@@ -28,7 +30,7 @@ templ ResolutionComponent(sizes []SizeConfig) {
 }
 
 templ FPSOptions(camera Camera) {
-	<select class="select">
+	<select class="select" data-bind:fps>
 		for _, fps := range camera.GetAvailableFPS() {
 			<option>{ fps }</option>
 		}

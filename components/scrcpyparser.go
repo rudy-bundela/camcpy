@@ -3,7 +3,6 @@ package components
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -56,6 +55,10 @@ func (s *ScrcpyInfo) HandleGetCameraOptions(w http.ResponseWriter, r *http.Reque
 	// TODO: fix this nonsense
 	sse := datastar.NewSSE(w, r, datastar.WithCompression(datastar.WithBrotli(datastar.WithBrotliLGWin(0))))
 
+	if s.DeviceName != "" {
+		return
+	}
+
 	scrcpyOutput, err := RunGetScrcpyDetails()
 	if err != nil {
 		runOnScrcpyError(sse, err)
@@ -83,13 +86,17 @@ func (s *ScrcpyInfo) HandleGetCameraOptions(w http.ResponseWriter, r *http.Reque
 }
 
 func (s *ScrcpyInfo) TestEndpoint(w http.ResponseWriter, r *http.Request) {
-	log.Println(s.DeviceName)
-	log.Println(s.Cameras)
-
-	w.Header().Set("content-type", "application/json")
-	if err := json.NewEncoder(w).Encode(s); err != nil {
-		log.Println(err)
+	if err := r.ParseForm(); err != nil {
+		log.Println("Error in parsing form", err)
 	}
+
+	params := r.Form
+	log.Println(params)
+
+	// w.Header().Set("content-type", "application/json")
+	// if err := json.NewEncoder(w).Encode(s); err != nil {
+	// 	log.Println(err)
+	// }
 }
 
 func (s *ScrcpyInfo) ParseScrcpyOutput(input string) error {
