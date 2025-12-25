@@ -64,20 +64,8 @@ func (s *ScrcpyInfo) HandleGetCameraOptions(w http.ResponseWriter, r *http.Reque
 		runOnScrcpyError(sse, err)
 	}
 
-	if err := sse.ConsoleLogf("Got scrcpy info; now parsing the information"); err != nil {
-		log.Println("Error console logging")
-	}
-
 	if err := s.ParseScrcpyOutput(string(scrcpyOutput)); err != nil {
 		log.Println("Error parsing scrcpy output: ", err)
-	}
-
-	if err := sse.ConsoleLogf("Parsed scrcpy info; now printing struct"); err != nil {
-		log.Println("Error console logging")
-	}
-
-	if err := sse.ConsoleLogf("%v", s); err != nil {
-		log.Println("Error console logging")
 	}
 
 	if err := sse.PatchElementTempl(Layout(OverallCameraComponent(s))); err != nil {
@@ -85,18 +73,21 @@ func (s *ScrcpyInfo) HandleGetCameraOptions(w http.ResponseWriter, r *http.Reque
 	}
 }
 
-func (s *ScrcpyInfo) TestEndpoint(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		log.Println("Error in parsing form", err)
+func (s *ScrcpyInfo) HandleCameraUpdate(w http.ResponseWriter, r *http.Request) {
+	sse := datastar.NewSSE(w, r)
+
+	type datastarSignalsStruct struct {
+		Fps        string `json:"fps"`
+		Resolution string `json:"resolution"`
 	}
 
-	params := r.Form
-	log.Println(params)
+	signals := &datastarSignalsStruct{}
 
-	// w.Header().Set("content-type", "application/json")
-	// if err := json.NewEncoder(w).Encode(s); err != nil {
-	// 	log.Println(err)
-	// }
+	datastar.ReadSignals(r, signals)
+
+	if err := sse.PatchElementTempl(Layout(OverallCameraComponent(s), CodePen([]string{signals.Fps}))); err != nil {
+		log.Println("Error console logging")
+	}
 }
 
 func (s *ScrcpyInfo) ParseScrcpyOutput(input string) error {
