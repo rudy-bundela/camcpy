@@ -4,6 +4,7 @@ templ OverallCameraComponent(s *ScrcpyInfo) {
 	<div class="m-4 p-4 justify-center" data-on:change="@get('/cameraupdate')">
 		<p>{ s.DeviceName }</p>
 		<ol type="a">
+			<select class="select"></select>
 			for _, camera := range s.Cameras {
 				<div class="card">
 					<div class="card-body">
@@ -35,4 +36,44 @@ templ FPSOptions(camera Camera) {
 			<option>{ fps }</option>
 		}
 	</select>
+}
+
+templ CameraComponent(s *ScrcpyInfo, signals *DatastarSignalsStruct) {
+	<div data-json-signals></div>
+	<div class="card card-title" data-on:change="@get('/cameraupdate')">
+		<p>
+			Device name = 
+			{ s.DeviceName }
+		</p>
+		@CamIDComponent(s, signals)
+	</div>
+}
+
+templ CamIDComponent(s *ScrcpyInfo, signals *DatastarSignalsStruct) {
+	<fieldset class="fieldset">
+		<div class="join join-horizontal m-4 p-4">
+			for _, camera := range s.Cameras {
+				<label class="label">Camera ID: { camera.ID }</label>
+				<input type="radio" class="radio m-4" name="camera" value={ camera.ID } data-bind:camID/>
+			}
+		</div>
+	</fieldset>
+	<fieldset class="fieldset">
+		<div class="m-4 p-4">
+			for _, fps := range s.GetCameraFromID(signals.CamID).GetAvailableFPS() {
+				<label class="label m-4 p-4">{ fps }</label>
+				<input type="radio" name="size" value={ fps } data-bind:fps/>
+			}
+		</div>
+	</fieldset>
+	<fieldset class="fieldset">
+		<div class="m-4 p-4">
+			<select class="select" data-bind:resolutionOption data-show="$fps != ''" style="display: none">
+				<option disabled selected>Pick a resolution</option>
+				for _, resolutionOption := range s.GetCameraFromID(signals.CamID).GetResolutionsForFPS(signals.Fps) {
+					<option>{ resolutionOption.Label }</option>
+				}
+			</select>
+		</div>
+	</fieldset>
 }

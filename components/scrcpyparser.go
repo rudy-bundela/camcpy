@@ -45,6 +45,12 @@ type ResolutionOption struct {
 	HighSpeed bool
 }
 
+type DatastarSignalsStruct struct {
+	Fps        int    `json:"fps,string"`
+	Resolution string `json:"resolution"`
+	CamID      string `json:"camID"`
+}
+
 func RunGetScrcpyDetails() (output []byte, err error) {
 	cmd := exec.Command("scrcpy", "--list-camera-sizes")
 	output, err = cmd.Output()
@@ -54,6 +60,9 @@ func RunGetScrcpyDetails() (output []byte, err error) {
 func (s *ScrcpyInfo) HandleGetCameraOptions(w http.ResponseWriter, r *http.Request) {
 	// TODO: fix this nonsense
 	sse := datastar.NewSSE(w, r, datastar.WithCompression(datastar.WithBrotli(datastar.WithBrotliLGWin(0))))
+
+	signals := &DatastarSignalsStruct{}
+	datastar.ReadSignals(r, signals)
 
 	if s.DeviceName != "" {
 		return
@@ -68,24 +77,23 @@ func (s *ScrcpyInfo) HandleGetCameraOptions(w http.ResponseWriter, r *http.Reque
 		log.Println("Error parsing scrcpy output: ", err)
 	}
 
-	if err := sse.PatchElementTempl(Layout(OverallCameraComponent(s))); err != nil {
+	if err := sse.PatchElementTempl(Layout(CameraComponent(s, signals))); err != nil {
 		log.Println("Error console logging")
 	}
 }
 
 func (s *ScrcpyInfo) HandleCameraUpdate(w http.ResponseWriter, r *http.Request) {
-	sse := datastar.NewSSE(w, r)
+	sse := datastar.NewSSE(w, r, datastar.WithCompression(datastar.WithBrotli(datastar.WithBrotliLGWin(0))))
 
-	type datastarSignalsStruct struct {
-		Fps        string `json:"fps"`
-		Resolution string `json:"resolution"`
+	signals := &DatastarSignalsStruct{}
+
+	if err := datastar.ReadSignals(r, signals); err != nil {
+		fmt.Println("error reading datastar signals", err)
 	}
 
-	signals := &datastarSignalsStruct{}
+	fmt.Println("Signals in HandleCameraUpdate = ", signals, r.URL)
 
-	datastar.ReadSignals(r, signals)
-
-	if err := sse.PatchElementTempl(Layout(OverallCameraComponent(s), CodePen([]string{signals.Fps}))); err != nil {
+	if err := sse.PatchElementTempl(Layout(CameraComponent(s, signals))); err != nil {
 		log.Println("Error console logging")
 	}
 }
@@ -236,6 +244,17 @@ func parseFPSList(input string) []int {
 		}
 	}
 	return result
+}
+
+func (s *ScrcpyInfo) GetCameraFromID(cameraID string) *Camera {
+	camera := &Camera{}
+
+	for _, cameras := range s.Cameras {
+		if cameras.ID == cameraID {
+			camera = &cameras
+		}
+	}
+	return camera
 }
 
 // GetResolutionsForFPS returns all resolutions that support the specific frame rate.
