@@ -1,30 +1,36 @@
 package components
 
 templ inputField(heading, placeholder, name string) {
-<label class="label">{ heading }</label>
-<input class="input" min="" name={ name } placeholder={ placeholder } />
+	<label class="label">{ heading }</label>
+	<input class="input" min="" name={ name } placeholder={ placeholder }/>
 }
 
 templ pairForm() {
-<div id="pairform" class="flex items-center mt-8 justify-center">
-  <form>
-    <fieldset
-      class="join-item fieldset bg-base-200 border-base-300 rounded-box m-auto border p-4 flex-col justify-center">
-      <legend class="fieldset-legend">Pairing Details</legend>
-      @inputField("IP Address", "e.g 192.168.0.1", "ipaddr")
-      @inputField("Port Number", "00000 (5-digit number)", "port")
-      @inputField("Pairing Code", "000000 (6-digit number)", "code")
-      <button class="btn btn-neutral mt-4" data-on:click="@get('/pairingendpoint', { contentType: 'form'})"
-        data-indicator:fetching data-attr:disabled="$fetching">
-        <span data-class="{'loading': $fetching, 'loading-dots': $fetching}"></span>
-        Pair with ADB
-      </button>
-      <button class="btn btn-neutral mt-4" data-on:click="@get('/connectendpoint')" data-indicator:fetching
-        data-attr:disabled="$fetching">
-        <span data-class="{'loading': $fetching, 'loading-dots': $fetching}"></span>
-        Already paired
-      </button>
-    </fieldset>
-  </form>
-</div>
+	<div id="pairform" class="flex items-center mt-8 justify-center">
+		<form>
+			<fieldset
+				class="join-item fieldset bg-base-200 border-base-300 rounded-box m-auto border p-4 flex-col justify-center"
+			>
+				<legend class="fieldset-legend">Pairing Details</legend>
+				@inputField("IP Address", "e.g 192.168.0.1", "ipaddr")
+				@inputField("Port Number", "00000 (5-digit number)", "port")
+				@inputField("Pairing Code", "000000 (6-digit number)", "code")
+				<button
+					class="btn btn-neutral mt-4"
+					data-on:click="@get('/pairingendpoint', { contentType: 'form'})"
+					data-indicator:fetching
+					data-attr:disabled="$fetching"
+				>
+					<span data-class="{'loading': $fetching, 'loading-dots': $fetching}"></span>
+					Pair with ADB
+				</button>
+				<a
+					class="btn btn-neutral mt-4"
+					href="/connect"
+				>
+					Already paired
+				</a>
+			</fieldset>
+		</form>
+	</div>
 }

@@ -44,14 +44,24 @@ func main() {
 				http.FileServer(http.Dir("static")))))
 
 	scrcpyStruct := components.ScrcpyInfo{}
+	// Main routes
+	// TODO: create proper components for this section
+	mux.Handle("/", templ.Handler(components.Welcome()))
+	mux.Handle("/pair", templ.Handler(components.PairformComponent()))
+	mux.Handle("/connect", templ.Handler(components.ConnectformComponent()))
 
-	mux.Handle("/", templ.Handler(components.Index()))
+	mux.Handle("/cameraoptions", http.HandlerFunc(handlers.HandlePairing))
+	mux.Handle("/mediamtxoptions", http.HandlerFunc(handlers.HandlePairing))
+	mux.Handle("/monitor", http.HandlerFunc(handlers.HandlePairing))
+
+	// Datastar handlers
 	mux.Handle("/pairingendpoint", http.HandlerFunc(handlers.HandlePairing))
 	mux.Handle("/adbconnect", http.HandlerFunc(handlers.HandleADBConnect))
 	mux.Handle("/setupcamerasse", http.HandlerFunc(scrcpyStruct.HandleGetCameraOptions))
 	mux.Handle("/setupcamera", templ.Handler(components.Layout(components.SetupCamera())))
 	mux.Handle("/connectendpoint", http.HandlerFunc(handleConnectedEndpoint))
-	mux.Handle("/test", http.HandlerFunc(scrcpyStruct.TestEndpoint))
+	mux.Handle("/cameraupdate", http.HandlerFunc(scrcpyStruct.HandleCameraUpdate))
+	mux.Handle("/printstruct", http.HandlerFunc(scrcpyStruct.PrintStruct))
 
 	log.Println("Listening on :8080")
 	log.Fatal(http.ListenAndServe(":8080", mux))

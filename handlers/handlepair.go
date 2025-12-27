@@ -18,6 +18,7 @@ func HandlePairing(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 	}
 	formvalues := r.Form
+	outputSlice := make([]string, 0, 10)
 
 	sse := datastar.NewSSE(w, r)
 	resultingOutput, err := runCommand(formvalues)
@@ -28,8 +29,8 @@ func HandlePairing(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	outputSlice := make([]string, 0, 10)
 	outputSlice = append(outputSlice, string(resultingOutput))
+	outputSlice = append(outputSlice, err.Error())
 
 	locInner := components.CodePen(outputSlice)
 

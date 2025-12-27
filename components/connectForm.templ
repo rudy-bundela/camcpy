@@ -18,15 +18,12 @@ templ ConnectForm() {
 					<span data-class="{'loading': $fetching, 'loading-dots': $fetching}"></span>
 					Connect ADB
 				</button>
-				<button
+				<a
 					class="btn btn-neutral mt-4"
-					data-on:click="@get('/')"
-					data-indicator:fetching
-					data-attr:disabled="$fetching"
+					href="/pair"
 				>
-					<span data-class="{'loading': $fetching, 'loading-dots': $fetching}"></span>
 					Pair again
-				</button>
+				</a>
 			</fieldset>
 		</form>
 	</div>

@@ -1,6 +1,24 @@
 // components/index.templ
 package components
 
-templ Index() {
-@Layout(pairForm(), CodePen([]string{"Waiting for input..."}))
+templ Welcome() {
+	@Layout(CarouselComponent())
+}
+
+templ PairformComponent() {
+	@Layout(pairForm(), CodePen([]string{"Waiting for input..."}))
+}
+
+templ ConnectformComponent() {
+	@Layout(ConnectForm(), CodePen([]string{"Waiting for input..."}))
+}
+
+templ CarouselComponent() {
+	//TODO:
+	<div class="flex justify-center p-8">
+		<h1>HELLO</h1>
+	</div>
+	<div class="flex justify-center p-8 h-screen">
+		<a class="btn btn-soft btn-wide" href="/pair">Begin Pairing</a>
+	</div>
 }
