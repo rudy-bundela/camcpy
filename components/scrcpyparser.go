@@ -3,6 +3,7 @@ package components
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -46,6 +47,7 @@ type ResolutionOption struct {
 }
 
 type DatastarSignalsStruct struct {
+	Position   string `json:"position"`
 	Fps        int    `json:"fps,string"`
 	Resolution string `json:"resolution"`
 	CamID      string `json:"camID"`
@@ -62,7 +64,9 @@ func (s *ScrcpyInfo) HandleGetCameraOptions(w http.ResponseWriter, r *http.Reque
 	sse := datastar.NewSSE(w, r, datastar.WithCompression(datastar.WithBrotli(datastar.WithBrotliLGWin(0))))
 
 	signals := &DatastarSignalsStruct{}
-	datastar.ReadSignals(r, signals)
+	if err := datastar.ReadSignals(r, signals); err != nil {
+		fmt.Println("Datastar error reading signals in HandleGetCameraOptions: ", err)
+	}
 
 	if s.DeviceName != "" {
 		return
@@ -88,10 +92,10 @@ func (s *ScrcpyInfo) HandleCameraUpdate(w http.ResponseWriter, r *http.Request) 
 	signals := &DatastarSignalsStruct{}
 
 	if err := datastar.ReadSignals(r, signals); err != nil {
-		fmt.Println("error reading datastar signals", err)
+		fmt.Println("Datastar error reading signals in HandleCameraUpdate: ", err)
 	}
 
-	fmt.Println("Signals in HandleCameraUpdate = ", signals, r.URL)
+	fmt.Println("Signals in HandleCameraUpdate = ", signals)
 
 	if err := sse.PatchElementTempl(Layout(CameraComponent(s, signals))); err != nil {
 		log.Println("Error console logging")
@@ -244,6 +248,26 @@ func parseFPSList(input string) []int {
 		}
 	}
 	return result
+}
+
+func (s *ScrcpyInfo) PrintStruct(w http.ResponseWriter, r *http.Request) {
+	jsonoutput, _ := json.Marshal(s)
+	fmt.Println(string(jsonoutput))
+
+	if _, err := w.Write(jsonoutput); err != nil {
+		fmt.Println("Error writing jsonoutput")
+	}
+}
+
+func (s *ScrcpyInfo) GetCameraFromPosition(position string) []Camera {
+	cameraList := make([]Camera, 0)
+
+	for _, camera := range s.Cameras {
+		if camera.Position == position {
+			cameraList = append(cameraList, camera)
+		}
+	}
+	return cameraList
 }
 
 func (s *ScrcpyInfo) GetCameraFromID(cameraID string) *Camera {

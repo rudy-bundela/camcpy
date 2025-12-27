@@ -61,6 +61,7 @@ func main() {
 	mux.Handle("/setupcamera", templ.Handler(components.Layout(components.SetupCamera())))
 	mux.Handle("/connectendpoint", http.HandlerFunc(handleConnectedEndpoint))
 	mux.Handle("/cameraupdate", http.HandlerFunc(scrcpyStruct.HandleCameraUpdate))
+	mux.Handle("/printstruct", http.HandlerFunc(scrcpyStruct.PrintStruct))
 
 	log.Println("Listening on :8080")
 	log.Fatal(http.ListenAndServe(":8080", mux))
