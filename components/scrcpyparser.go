@@ -293,7 +293,7 @@ func (c *Camera) GetResolutionsForFPS(targetFPS int) []ResolutionOption {
 
 				// Add the lightning bolt if this specific FPS/Res combo needs high speed
 				if fpsOpt.HighSpeed {
-					label += " ⚡"
+					label += " (high-speed)"
 				}
 
 				options = append(options, ResolutionOption{
