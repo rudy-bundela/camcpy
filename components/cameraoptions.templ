@@ -23,6 +23,7 @@ templ CameraBodyComponent(s *ScrcpyInfo, signals *DatastarSignalsStruct) {
 				<div class="join join-horizontal m-4 p-4" id="fps" data-on:change="@get('/camera/resolutionupdate')"></div>
 				<div class="m-4 p-4" id="resolution"></div>
 			</div>
+			<button class="btn btn-neutral mt-4" data-on:click="@post('/camera/startstream')">Start Video Stream</button>
 		</fieldset>
 	</div>
 }
@@ -47,7 +48,8 @@ templ CameraFPSComponent(fpslist []int) {
 
 templ CameraResolutionComponent(resoltions []ResolutionOption) {
 	<div class="m-4 p-4" id="resolution">
-		<select class="select" data-bind:resolution data-show="$fps != ''" style="display: none">
+		<label for="resolution-select" class="label">Resolution</label>
+		<select id="resolution-select" class="select" data-bind:resolution data-show="$fps != ''" style="display: none">
 			<option disabled selected>Pick a resolution</option>
 			for _, resolutionOption := range resoltions {
 				<option>{ resolutionOption.Label }</option>

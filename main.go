@@ -65,6 +65,7 @@ func main() {
 	mux.Handle("/camera/idupdate", http.HandlerFunc(scrcpyStruct.HandleCameraIDUpdate))
 	mux.Handle("/camera/fpsupdate", http.HandlerFunc(scrcpyStruct.HandleCameraFPSUpdate))
 	mux.Handle("/camera/resolutionupdate", http.HandlerFunc(scrcpyStruct.HandleCameraResolutionUpdate))
+	mux.Handle("POST /camera/startstream", http.HandlerFunc(scrcpyStruct.HandleStartStream))
 	mux.Handle("/printstruct", http.HandlerFunc(scrcpyStruct.PrintStruct))
 
 	log.Println("Listening on :8080")
