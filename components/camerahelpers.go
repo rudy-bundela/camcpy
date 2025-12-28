@@ -11,13 +11,33 @@ import (
 	"github.com/starfederation/datastar-go/datastar"
 )
 
-func (s *ScrcpyInfo) HandleGetCameraOptions(w http.ResponseWriter, r *http.Request) {
-	// TODO: fix this nonsense
-	sse := datastar.NewSSE(w, r, datastar.WithCompression(datastar.WithBrotli(datastar.WithBrotliLGWin(0))))
-
+func readSignals(r *http.Request) (*DatastarSignalsStruct, error) {
 	signals := &DatastarSignalsStruct{}
 	if err := datastar.ReadSignals(r, signals); err != nil {
-		fmt.Println("Datastar error reading signals in HandleGetCameraOptions: ", err)
+		return nil, fmt.Errorf("datastar error reading signals: %w", err)
+	}
+	return signals, nil
+}
+
+func newSSE(w http.ResponseWriter, r *http.Request) *datastar.ServerSentEventGenerator {
+	return datastar.NewSSE(
+		w,
+		r,
+		datastar.WithCompression(
+			datastar.WithBrotli(
+				datastar.WithBrotliLGWin(0),
+			),
+		),
+	)
+}
+
+func (s *ScrcpyInfo) HandleGetCameraOptions(w http.ResponseWriter, r *http.Request) {
+	// TODO: fix this nonsense
+	sse := newSSE(w, r)
+
+	signals, err := readSignals(r)
+	if err != nil {
+		fmt.Println("Datastar error reading signals in HandleGetCameraOptions:", err)
 	}
 
 	if s.DeviceName != "" {
@@ -27,10 +47,11 @@ func (s *ScrcpyInfo) HandleGetCameraOptions(w http.ResponseWriter, r *http.Reque
 	scrcpyOutput, err := RunGetScrcpyDetails()
 	if err != nil {
 		runOnScrcpyError(sse, err)
+		return
 	}
 
 	if err := s.ParseScrcpyOutput(string(scrcpyOutput)); err != nil {
-		log.Println("Error parsing scrcpy output: ", err)
+		log.Println("Error parsing scrcpy output:", err)
 	}
 
 	if err := sse.PatchElementTempl(Layout(CameraComponent(s, signals))); err != nil {
@@ -56,6 +77,7 @@ func SetCameraResolution(sse *datastar.ServerSentEventGenerator, signals *Datast
 	if err := sse.PatchElementTempl(CameraResolutionComponent(resolutions)); err != nil {
 		fmt.Println("Error in patching element for CameraIDComponent", err)
 	}
+
 	if slices.ContainsFunc(resolutions, func(r ResolutionOption) bool {
 		return strings.Contains(r.Label, "1920x1080 (high-speed)")
 	}) {
@@ -71,17 +93,18 @@ func SetCameraID(sse *datastar.ServerSentEventGenerator, signals *DatastarSignal
 	if err := sse.PatchElementTempl(CameraIDComponent(newCamera)); err != nil {
 		fmt.Println("Error in patching element for CameraIDComponent", err)
 	}
+
 	signals.CamID = newCamera[0].ID
 }
 
 func (s *ScrcpyInfo) HandleCameraIDUpdate(w http.ResponseWriter, r *http.Request) {
-	signals := &DatastarSignalsStruct{}
-
-	if err := datastar.ReadSignals(r, signals); err != nil {
-		fmt.Println("Datastar error reading signals in HandleCameraUpdate: ", err)
+	signals, err := readSignals(r)
+	if err != nil {
+		fmt.Println("Datastar error reading signals in HandleCameraUpdate:", err)
 	}
 
-	sse := datastar.NewSSE(w, r, datastar.WithCompression(datastar.WithBrotli(datastar.WithBrotliLGWin(0))))
+	sse := newSSE(w, r)
+
 	SetCameraID(sse, signals, s)
 	SetCameraFPS(sse, signals, s)
 	SetCameraResolution(sse, signals, s)
@@ -92,13 +115,12 @@ func (s *ScrcpyInfo) HandleCameraIDUpdate(w http.ResponseWriter, r *http.Request
 }
 
 func (s *ScrcpyInfo) HandleCameraFPSUpdate(w http.ResponseWriter, r *http.Request) {
-	signals := &DatastarSignalsStruct{}
-
-	if err := datastar.ReadSignals(r, signals); err != nil {
-		fmt.Println("Datastar error reading signals in HandleCameraUpdate: ", err)
+	signals, err := readSignals(r)
+	if err != nil {
+		fmt.Println("Datastar error reading signals in HandleCameraUpdate:", err)
 	}
 
-	sse := datastar.NewSSE(w, r, datastar.WithCompression(datastar.WithBrotli(datastar.WithBrotliLGWin(0))))
+	sse := newSSE(w, r)
 
 	SetCameraFPS(sse, signals, s)
 	SetCameraResolution(sse, signals, s)
@@ -109,11 +131,12 @@ func (s *ScrcpyInfo) HandleCameraFPSUpdate(w http.ResponseWriter, r *http.Reques
 }
 
 func (s *ScrcpyInfo) HandleCameraResolutionUpdate(w http.ResponseWriter, r *http.Request) {
-	signals := &DatastarSignalsStruct{}
-	if err := datastar.ReadSignals(r, signals); err != nil {
-		fmt.Println("Datastar error reading signals in HandleCameraUpdate: ", err)
+	signals, err := readSignals(r)
+	if err != nil {
+		fmt.Println("Datastar error reading signals in HandleCameraUpdate:", err)
 	}
-	sse := datastar.NewSSE(w, r, datastar.WithCompression(datastar.WithBrotli(datastar.WithBrotliLGWin(0))))
+
+	sse := newSSE(w, r)
 
 	SetCameraResolution(sse, signals, s)
 
@@ -125,7 +148,6 @@ func (s *ScrcpyInfo) HandleCameraResolutionUpdate(w http.ResponseWriter, r *http
 func (s *ScrcpyInfo) PrintStruct(w http.ResponseWriter, r *http.Request) {
 	jsonoutput, _ := json.Marshal(s)
 	fmt.Println(string(jsonoutput))
-
 	if _, err := w.Write(jsonoutput); err != nil {
 		fmt.Println("Error writing jsonoutput")
 	}
@@ -133,7 +155,6 @@ func (s *ScrcpyInfo) PrintStruct(w http.ResponseWriter, r *http.Request) {
 
 func (s *ScrcpyInfo) GetCameraFromPosition(position string) []Camera {
 	cameraList := make([]Camera, 0)
-
 	for _, camera := range s.Cameras {
 		if camera.Position == position {
 			cameraList = append(cameraList, camera)
@@ -144,7 +165,6 @@ func (s *ScrcpyInfo) GetCameraFromPosition(position string) []Camera {
 
 func (s *ScrcpyInfo) GetCameraFromID(cameraID string) *Camera {
 	camera := &Camera{}
-
 	for _, cameras := range s.Cameras {
 		if cameras.ID == cameraID {
 			camera = &cameras
@@ -157,16 +177,13 @@ func (s *ScrcpyInfo) GetCameraFromID(cameraID string) *Camera {
 // It also returns the specific FPSOption configuration (e.g. to check HighSpeed requirements).
 func (c *Camera) GetResolutionsForFPS(targetFPS int) []ResolutionOption {
 	var options []ResolutionOption
-
 	for _, size := range c.Sizes {
 		for _, fpsOpt := range size.FPS {
 			if fpsOpt.Value == targetFPS {
 				label := size.Resolution
-
 				if fpsOpt.HighSpeed {
 					label += " (high-speed)"
 				}
-
 				options = append(options, ResolutionOption{
 					Value:     size.Resolution,
 					Label:     label,
@@ -192,13 +209,16 @@ func (c *Camera) GetAvailableFPS() []int {
 	for fps := range fpsSet {
 		fpsList = append(fpsList, fps)
 	}
+
 	slices.Sort(fpsList)
 	return fpsList
 }
 
 func (s *ScrcpyInfo) HandleStartStream(w http.ResponseWriter, r *http.Request) {
-	signals := &DatastarSignalsStruct{}
-	datastar.ReadSignals(r, signals)
+	signals, err := readSignals(r)
+	if err != nil {
+		fmt.Println("Datastar error reading signals in HandleStartStream:", err)
+	}
 
 	log.Println(signals)
 }
