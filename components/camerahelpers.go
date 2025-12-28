@@ -182,24 +182,17 @@ func (c *Camera) GetResolutionsForFPS(targetFPS int) []ResolutionOption {
 
 // GetAvailableFPS returns a sorted list of all unique FPS values supported by this camera.
 func (c *Camera) GetAvailableFPS() []int {
-	uniqueFPS := make(map[int]bool)
+	fpsSet := make(map[int]bool)
 	for _, size := range c.Sizes {
 		for _, fpsOpt := range size.FPS {
-			uniqueFPS[fpsOpt.Value] = true
+			fpsSet[fpsOpt.Value] = true
 		}
 	}
 
-	var sortedFPS []int
-	for fps := range uniqueFPS {
-		sortedFPS = append(sortedFPS, fps)
+	fpsList := make([]int, 0, len(fpsSet))
+	for fps := range fpsSet {
+		fpsList = append(fpsList, fps)
 	}
-	// Sort ascending
-	for i := 0; i < len(sortedFPS); i++ {
-		for j := i + 1; j < len(sortedFPS); j++ {
-			if sortedFPS[i] > sortedFPS[j] {
-				sortedFPS[i], sortedFPS[j] = sortedFPS[j], sortedFPS[i]
-			}
-		}
-	}
-	return sortedFPS
+	slices.Sort(fpsList)
+	return fpsList
 }
