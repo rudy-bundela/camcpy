@@ -1,15 +1,21 @@
 package components
 
 import (
+	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"os/exec"
 	"slices"
 	"strings"
 
 	"github.com/starfederation/datastar-go/datastar"
 )
+
+// --- Helper Functions ---
 
 func readSignals(r *http.Request) (*DatastarSignalsStruct, error) {
 	signals := &DatastarSignalsStruct{}
@@ -31,13 +37,13 @@ func newSSE(w http.ResponseWriter, r *http.Request) *datastar.ServerSentEventGen
 	)
 }
 
-func (s *ScrcpyInfo) HandleGetCameraOptions(w http.ResponseWriter, r *http.Request) {
-	// TODO: fix this nonsense
-	sse := newSSE(w, r)
+// --- ScrcpyInfo Methods ---
 
+func (s *ScrcpyInfo) HandleGetCameraOptions(w http.ResponseWriter, r *http.Request) {
+	sse := newSSE(w, r)
 	signals, err := readSignals(r)
 	if err != nil {
-		fmt.Println("Datastar error reading signals in HandleGetCameraOptions:", err)
+		log.Println("Datastar error reading signals in HandleGetCameraOptions:", err)
 	}
 
 	if s.DeviceName != "" {
@@ -55,54 +61,15 @@ func (s *ScrcpyInfo) HandleGetCameraOptions(w http.ResponseWriter, r *http.Reque
 	}
 
 	if err := sse.PatchElementTempl(Layout(CameraComponent(s, signals))); err != nil {
-		log.Println("Error console logging")
+		log.Println("Error patching Layout")
 	}
-}
-
-func SetCameraFPS(sse *datastar.ServerSentEventGenerator, signals *DatastarSignalsStruct, s *ScrcpyInfo) {
-	fpslist := make([]int, 0)
-	fpslist = append(fpslist, s.GetCameraFromID(signals.CamID).GetAvailableFPS()...)
-	if err := sse.PatchElementTempl(CameraFPSComponent(fpslist)); err != nil {
-		fmt.Println("Error in patching element for CameraIDComponent", err)
-	}
-
-	if !slices.Contains(fpslist, signals.Fps) {
-		signals.Fps = fpslist[len(fpslist)-1]
-	}
-}
-
-func SetCameraResolution(sse *datastar.ServerSentEventGenerator, signals *DatastarSignalsStruct, s *ScrcpyInfo) {
-	resolutions := make([]ResolutionOption, 0)
-	resolutions = append(resolutions, s.GetCameraFromID(signals.CamID).GetResolutionsForFPS(signals.Fps)...)
-	if err := sse.PatchElementTempl(CameraResolutionComponent(resolutions)); err != nil {
-		fmt.Println("Error in patching element for CameraIDComponent", err)
-	}
-
-	if slices.ContainsFunc(resolutions, func(r ResolutionOption) bool {
-		return strings.Contains(r.Label, "1920x1080 (high-speed)")
-	}) {
-		signals.Resolution = "1920x1080 (high-speed)"
-	} else {
-		signals.Resolution = resolutions[0].Label
-	}
-}
-
-func SetCameraID(sse *datastar.ServerSentEventGenerator, signals *DatastarSignalsStruct, s *ScrcpyInfo) {
-	newCamera := make([]Camera, 0)
-	newCamera = append(newCamera, s.GetCameraFromPosition(signals.Position)...)
-	if err := sse.PatchElementTempl(CameraIDComponent(newCamera)); err != nil {
-		fmt.Println("Error in patching element for CameraIDComponent", err)
-	}
-
-	signals.CamID = newCamera[0].ID
 }
 
 func (s *ScrcpyInfo) HandleCameraIDUpdate(w http.ResponseWriter, r *http.Request) {
 	signals, err := readSignals(r)
 	if err != nil {
-		fmt.Println("Datastar error reading signals in HandleCameraUpdate:", err)
+		log.Println("Error reading signals:", err)
 	}
-
 	sse := newSSE(w, r)
 
 	SetCameraID(sse, signals, s)
@@ -110,71 +77,173 @@ func (s *ScrcpyInfo) HandleCameraIDUpdate(w http.ResponseWriter, r *http.Request
 	SetCameraResolution(sse, signals, s)
 
 	if err := sse.MarshalAndPatchSignals(signals); err != nil {
-		fmt.Println("Error marshalling and patching signals in HandleCameraUpdate", err)
+		log.Println("Error patching signals:", err)
 	}
 }
 
 func (s *ScrcpyInfo) HandleCameraFPSUpdate(w http.ResponseWriter, r *http.Request) {
 	signals, err := readSignals(r)
 	if err != nil {
-		fmt.Println("Datastar error reading signals in HandleCameraUpdate:", err)
+		log.Println("Error reading signals:", err)
 	}
-
 	sse := newSSE(w, r)
 
 	SetCameraFPS(sse, signals, s)
 	SetCameraResolution(sse, signals, s)
 
 	if err := sse.MarshalAndPatchSignals(signals); err != nil {
-		fmt.Println("Error marshalling and patching signals in HandleCameraUpdate", err)
+		log.Println("Error patching signals:", err)
 	}
 }
 
 func (s *ScrcpyInfo) HandleCameraResolutionUpdate(w http.ResponseWriter, r *http.Request) {
 	signals, err := readSignals(r)
 	if err != nil {
-		fmt.Println("Datastar error reading signals in HandleCameraUpdate:", err)
+		log.Println("Error reading signals:", err)
 	}
-
 	sse := newSSE(w, r)
 
 	SetCameraResolution(sse, signals, s)
 
 	if err := sse.MarshalAndPatchSignals(signals); err != nil {
-		fmt.Println("Error marshalling and patching signals in HandleCameraUpdate", err)
+		log.Println("Error patching signals:", err)
 	}
+}
+
+func (s *ScrcpyInfo) HandleStartStream(w http.ResponseWriter, r *http.Request) {
+	signals, err := readSignals(r)
+	if err != nil {
+		log.Printf("Datastar error: %v", err)
+		return
+	}
+
+	// 1. If a stream is already running, cancel it
+	if s.cancelStream != nil {
+		s.cancelStream()
+	}
+
+	// 2. Create a new context for this specific stream
+	ctx, cancel := context.WithCancel(context.Background())
+	s.cancelStream = cancel
+
+	// 3. Build the argument slice
+	args := []string{"--video-source=camera"}
+	args = append(args, fmt.Sprintf("--camera-fps=%d", signals.Fps))
+	args = append(args, fmt.Sprintf("--camera-id=%s", signals.CamID))
+
+	resLabel := signals.Resolution
+	if strings.Contains(resLabel, " (high-speed)") {
+		resLabel, _ = strings.CutSuffix(resLabel, " (high-speed)")
+		args = append(args, "--camera-high-speed")
+	}
+	args = append(args, fmt.Sprintf("--camera-size=%s", resLabel))
+
+	// 4. Create Command with Context
+	cmd := exec.CommandContext(ctx, "scrcpy", args...)
+
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	cmd.Stdout = os.Stdout // Pipe to server logs for visibility
+
+	log.Printf("Executing: scrcpy %s", strings.Join(args, " "))
+
+	if err := cmd.Start(); err != nil {
+		log.Printf("Startup error: %v", err)
+		return
+	}
+
+	// 5. Background monitor
+	go func() {
+		err := cmd.Wait()
+		if err != nil {
+			if ctx.Err() == context.Canceled {
+				log.Println("Scrcpy stream stopped by user/new request.")
+			} else {
+				log.Printf("Scrcpy exited with error: %v\nStderr: %s", err, stderr.String())
+			}
+		}
+	}()
+}
+
+func (s *ScrcpyInfo) HandleStopStream(w http.ResponseWriter, r *http.Request) {
+	if s.cancelStream != nil {
+		log.Println("Stopping scrcpy stream...")
+		s.cancelStream()
+		s.cancelStream = nil // Reset after calling
+	}
+
+	// Optional: Send an SSE event back to update the UI state (e.g., hide a 'Live' badge)
+	// sse := newSSE(w, r)
+	// You could patch a component here to show the "Start" button again
+	// sse.PatchElementTempl(...)
 }
 
 func (s *ScrcpyInfo) PrintStruct(w http.ResponseWriter, r *http.Request) {
 	jsonoutput, _ := json.Marshal(s)
 	fmt.Println(string(jsonoutput))
-	if _, err := w.Write(jsonoutput); err != nil {
-		fmt.Println("Error writing jsonoutput")
+	w.Write(jsonoutput)
+}
+
+// --- Data Logic Helpers ---
+
+func SetCameraFPS(sse *datastar.ServerSentEventGenerator, signals *DatastarSignalsStruct, s *ScrcpyInfo) {
+	fpslist := s.GetCameraFromID(signals.CamID).GetAvailableFPS()
+	if err := sse.PatchElementTempl(CameraFPSComponent(fpslist)); err != nil {
+		fmt.Println("Error patching FPS component", err)
+	}
+
+	if !slices.Contains(fpslist, signals.Fps) && len(fpslist) > 0 {
+		signals.Fps = fpslist[len(fpslist)-1]
+	}
+}
+
+func SetCameraResolution(sse *datastar.ServerSentEventGenerator, signals *DatastarSignalsStruct, s *ScrcpyInfo) {
+	resolutions := s.GetCameraFromID(signals.CamID).GetResolutionsForFPS(signals.Fps)
+	if err := sse.PatchElementTempl(CameraResolutionComponent(resolutions)); err != nil {
+		fmt.Println("Error patching Resolution component", err)
+	}
+
+	hasHighRes := slices.ContainsFunc(resolutions, func(r ResolutionOption) bool {
+		return strings.Contains(r.Label, "1920x1080 (high-speed)")
+	})
+
+	if hasHighRes {
+		signals.Resolution = "1920x1080 (high-speed)"
+	} else if len(resolutions) > 0 {
+		signals.Resolution = resolutions[0].Label
+	}
+}
+
+func SetCameraID(sse *datastar.ServerSentEventGenerator, signals *DatastarSignalsStruct, s *ScrcpyInfo) {
+	newCameras := s.GetCameraFromPosition(signals.Position)
+	if err := sse.PatchElementTempl(CameraIDComponent(newCameras)); err != nil {
+		fmt.Println("Error patching ID component", err)
+	}
+
+	if len(newCameras) > 0 {
+		signals.CamID = newCameras[0].ID
 	}
 }
 
 func (s *ScrcpyInfo) GetCameraFromPosition(position string) []Camera {
-	cameraList := make([]Camera, 0)
-	for _, camera := range s.Cameras {
-		if camera.Position == position {
-			cameraList = append(cameraList, camera)
+	var list []Camera
+	for _, c := range s.Cameras {
+		if c.Position == position {
+			list = append(list, c)
 		}
 	}
-	return cameraList
+	return list
 }
 
 func (s *ScrcpyInfo) GetCameraFromID(cameraID string) *Camera {
-	camera := &Camera{}
-	for _, cameras := range s.Cameras {
-		if cameras.ID == cameraID {
-			camera = &cameras
+	for i := range s.Cameras {
+		if s.Cameras[i].ID == cameraID {
+			return &s.Cameras[i]
 		}
 	}
-	return camera
+	return &Camera{}
 }
 
-// GetResolutionsForFPS returns all resolutions that support the specific frame rate.
-// It also returns the specific FPSOption configuration (e.g. to check HighSpeed requirements).
 func (c *Camera) GetResolutionsForFPS(targetFPS int) []ResolutionOption {
 	var options []ResolutionOption
 	for _, size := range c.Sizes {
@@ -196,7 +265,6 @@ func (c *Camera) GetResolutionsForFPS(targetFPS int) []ResolutionOption {
 	return options
 }
 
-// GetAvailableFPS returns a sorted list of all unique FPS values supported by this camera.
 func (c *Camera) GetAvailableFPS() []int {
 	fpsSet := make(map[int]bool)
 	for _, size := range c.Sizes {
@@ -204,21 +272,10 @@ func (c *Camera) GetAvailableFPS() []int {
 			fpsSet[fpsOpt.Value] = true
 		}
 	}
-
 	fpsList := make([]int, 0, len(fpsSet))
 	for fps := range fpsSet {
 		fpsList = append(fpsList, fps)
 	}
-
 	slices.Sort(fpsList)
 	return fpsList
-}
-
-func (s *ScrcpyInfo) HandleStartStream(w http.ResponseWriter, r *http.Request) {
-	signals, err := readSignals(r)
-	if err != nil {
-		fmt.Println("Datastar error reading signals in HandleStartStream:", err)
-	}
-
-	log.Println(signals)
 }
