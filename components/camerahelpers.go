@@ -45,7 +45,9 @@ func SetCameraFPS(sse *datastar.ServerSentEventGenerator, signals *DatastarSigna
 		fmt.Println("Error in patching element for CameraIDComponent", err)
 	}
 
-	signals.Fps = fpslist[0]
+	if !slices.Contains(fpslist, signals.Fps) {
+		signals.Fps = fpslist[len(fpslist)-1]
+	}
 }
 
 func SetCameraResolution(sse *datastar.ServerSentEventGenerator, signals *DatastarSignalsStruct, s *ScrcpyInfo) {
@@ -97,8 +99,6 @@ func (s *ScrcpyInfo) HandleCameraFPSUpdate(w http.ResponseWriter, r *http.Reques
 	}
 
 	sse := datastar.NewSSE(w, r, datastar.WithCompression(datastar.WithBrotli(datastar.WithBrotliLGWin(0))))
-
-	fmt.Println("Signals in HandleCameraUpdate = ", signals)
 
 	SetCameraFPS(sse, signals, s)
 	SetCameraResolution(sse, signals, s)
@@ -163,7 +163,6 @@ func (c *Camera) GetResolutionsForFPS(targetFPS int) []ResolutionOption {
 			if fpsOpt.Value == targetFPS {
 				label := size.Resolution
 
-				// Add the lightning bolt if this specific FPS/Res combo needs high speed
 				if fpsOpt.HighSpeed {
 					label += " (high-speed)"
 				}
@@ -173,7 +172,6 @@ func (c *Camera) GetResolutionsForFPS(targetFPS int) []ResolutionOption {
 					Label:     label,
 					HighSpeed: fpsOpt.HighSpeed,
 				})
-				// We found the match for this resolution, stop checking other FPSs for this specific size
 				break
 			}
 		}
@@ -196,4 +194,11 @@ func (c *Camera) GetAvailableFPS() []int {
 	}
 	slices.Sort(fpsList)
 	return fpsList
+}
+
+func (s *ScrcpyInfo) HandleStartStream(w http.ResponseWriter, r *http.Request) {
+	signals := &DatastarSignalsStruct{}
+	datastar.ReadSignals(r, signals)
+
+	log.Println(signals)
 }
