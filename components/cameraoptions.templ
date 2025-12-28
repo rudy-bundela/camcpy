@@ -9,7 +9,7 @@ templ CameraComponent(s *ScrcpyInfo, signals *DatastarSignalsStruct) {
 }
 
 templ CameraBodyComponent(s *ScrcpyInfo, signals *DatastarSignalsStruct) {
-	<div class="card card-body w-10/12" data-signals="{position: '', camid: '', fps: '', resolution: ''}">
+	<div class="card card-body w-10/12" data-signals="{position: '', camid: '', fps: '0', resolution: ''}">
 		<fieldset class="fieldset bg-base-200 border-base-300 rounded-box border p-4 overflow-auto">
 			<p>Device: { s.DeviceName }</p>
 			<div class="flex flex-col items-start ">

@@ -101,6 +101,7 @@ func (s *ScrcpyInfo) HandleCameraFPSUpdate(w http.ResponseWriter, r *http.Reques
 	fmt.Println("Signals in HandleCameraUpdate = ", signals)
 
 	SetCameraFPS(sse, signals, s)
+	SetCameraResolution(sse, signals, s)
 
 	if err := sse.MarshalAndPatchSignals(signals); err != nil {
 		fmt.Println("Error marshalling and patching signals in HandleCameraUpdate", err)
