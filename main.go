@@ -60,7 +60,11 @@ func main() {
 	mux.Handle("/setupcamerasse", http.HandlerFunc(scrcpyStruct.HandleGetCameraOptions))
 	mux.Handle("/setupcamera", templ.Handler(components.Layout(components.SetupCamera())))
 	mux.Handle("/connectendpoint", http.HandlerFunc(handleConnectedEndpoint))
-	mux.Handle("/cameraupdate", http.HandlerFunc(scrcpyStruct.HandleCameraUpdate))
+
+	// Camera specific datastar handlers
+	mux.Handle("/camera/idupdate", http.HandlerFunc(scrcpyStruct.HandleCameraIDUpdate))
+	mux.Handle("/camera/fpsupdate", http.HandlerFunc(scrcpyStruct.HandleCameraFPSUpdate))
+	mux.Handle("/camera/resolutionupdate", http.HandlerFunc(scrcpyStruct.HandleCameraResolutionUpdate))
 	mux.Handle("/printstruct", http.HandlerFunc(scrcpyStruct.PrintStruct))
 
 	log.Println("Listening on :8080")

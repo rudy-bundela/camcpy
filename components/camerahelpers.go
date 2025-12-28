@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"slices"
+	"strings"
 
 	"github.com/starfederation/datastar-go/datastar"
 )
@@ -36,19 +38,86 @@ func (s *ScrcpyInfo) HandleGetCameraOptions(w http.ResponseWriter, r *http.Reque
 	}
 }
 
-func (s *ScrcpyInfo) HandleCameraUpdate(w http.ResponseWriter, r *http.Request) {
-	sse := datastar.NewSSE(w, r, datastar.WithCompression(datastar.WithBrotli(datastar.WithBrotliLGWin(0))))
+func SetCameraFPS(sse *datastar.ServerSentEventGenerator, signals *DatastarSignalsStruct, s *ScrcpyInfo) {
+	fpslist := make([]int, 0)
+	fpslist = append(fpslist, s.GetCameraFromID(signals.CamID).GetAvailableFPS()...)
+	if err := sse.PatchElementTempl(CameraFPSComponent(fpslist)); err != nil {
+		fmt.Println("Error in patching element for CameraIDComponent", err)
+	}
 
+	signals.Fps = fpslist[0]
+}
+
+func SetCameraResolution(sse *datastar.ServerSentEventGenerator, signals *DatastarSignalsStruct, s *ScrcpyInfo) {
+	resolutions := make([]ResolutionOption, 0)
+	resolutions = append(resolutions, s.GetCameraFromID(signals.CamID).GetResolutionsForFPS(signals.Fps)...)
+	if err := sse.PatchElementTempl(CameraResolutionComponent(resolutions)); err != nil {
+		fmt.Println("Error in patching element for CameraIDComponent", err)
+	}
+	if slices.ContainsFunc(resolutions, func(r ResolutionOption) bool {
+		return strings.Contains(r.Label, "1920x1080 (high-speed)")
+	}) {
+		signals.Resolution = "1920x1080 (high-speed)"
+	} else {
+		signals.Resolution = resolutions[0].Label
+	}
+}
+
+func SetCameraID(sse *datastar.ServerSentEventGenerator, signals *DatastarSignalsStruct, s *ScrcpyInfo) {
+	newCamera := make([]Camera, 0)
+	newCamera = append(newCamera, s.GetCameraFromPosition(signals.Position)...)
+	if err := sse.PatchElementTempl(CameraIDComponent(newCamera)); err != nil {
+		fmt.Println("Error in patching element for CameraIDComponent", err)
+	}
+	signals.CamID = newCamera[0].ID
+}
+
+func (s *ScrcpyInfo) HandleCameraIDUpdate(w http.ResponseWriter, r *http.Request) {
 	signals := &DatastarSignalsStruct{}
 
 	if err := datastar.ReadSignals(r, signals); err != nil {
 		fmt.Println("Datastar error reading signals in HandleCameraUpdate: ", err)
 	}
 
+	sse := datastar.NewSSE(w, r, datastar.WithCompression(datastar.WithBrotli(datastar.WithBrotliLGWin(0))))
+	SetCameraID(sse, signals, s)
+	SetCameraFPS(sse, signals, s)
+	SetCameraResolution(sse, signals, s)
+
+	if err := sse.MarshalAndPatchSignals(signals); err != nil {
+		fmt.Println("Error marshalling and patching signals in HandleCameraUpdate", err)
+	}
+}
+
+func (s *ScrcpyInfo) HandleCameraFPSUpdate(w http.ResponseWriter, r *http.Request) {
+	signals := &DatastarSignalsStruct{}
+
+	if err := datastar.ReadSignals(r, signals); err != nil {
+		fmt.Println("Datastar error reading signals in HandleCameraUpdate: ", err)
+	}
+
+	sse := datastar.NewSSE(w, r, datastar.WithCompression(datastar.WithBrotli(datastar.WithBrotliLGWin(0))))
+
 	fmt.Println("Signals in HandleCameraUpdate = ", signals)
 
-	if err := sse.PatchElementTempl(Layout(CameraComponent(s, signals))); err != nil {
-		log.Println("Error console logging")
+	SetCameraFPS(sse, signals, s)
+
+	if err := sse.MarshalAndPatchSignals(signals); err != nil {
+		fmt.Println("Error marshalling and patching signals in HandleCameraUpdate", err)
+	}
+}
+
+func (s *ScrcpyInfo) HandleCameraResolutionUpdate(w http.ResponseWriter, r *http.Request) {
+	signals := &DatastarSignalsStruct{}
+	if err := datastar.ReadSignals(r, signals); err != nil {
+		fmt.Println("Datastar error reading signals in HandleCameraUpdate: ", err)
+	}
+	sse := datastar.NewSSE(w, r, datastar.WithCompression(datastar.WithBrotli(datastar.WithBrotliLGWin(0))))
+
+	SetCameraResolution(sse, signals, s)
+
+	if err := sse.MarshalAndPatchSignals(signals); err != nil {
+		fmt.Println("Error marshalling and patching signals in HandleCameraUpdate", err)
 	}
 }
 

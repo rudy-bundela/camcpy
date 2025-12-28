@@ -48,7 +48,7 @@ type DatastarSignalsStruct struct {
 	Position   string `json:"position"`
 	Fps        int    `json:"fps,string"`
 	Resolution string `json:"resolution"`
-	CamID      string `json:"camID"`
+	CamID      string `json:"camid"`
 }
 
 func RunGetScrcpyDetails() (output []byte, err error) {
