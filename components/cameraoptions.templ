@@ -24,6 +24,7 @@ templ CameraBodyComponent(s *ScrcpyInfo, signals *DatastarSignalsStruct) {
 				<div class="m-4 p-4" id="resolution"></div>
 			</div>
 			<button class="btn btn-neutral mt-4" data-on:click="@post('/camera/startstream')">Start Video Stream</button>
+			<button class="btn btn-neutral mt-4" data-on:click="@post('/camera/stopstream')">Stop Video Stream</button>
 		</fieldset>
 	</div>
 }

@@ -3,6 +3,7 @@ package components
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"log"
 	"os/exec"
@@ -16,8 +17,9 @@ import (
 )
 
 type ScrcpyInfo struct {
-	DeviceName string   `json:"device_name"`
-	Cameras    []Camera `json:"cameras"`
+	DeviceName   string             `json:"device_name"`
+	Cameras      []Camera           `json:"cameras"`
+	cancelStream context.CancelFunc `json:"-"`
 }
 
 type Camera struct {
