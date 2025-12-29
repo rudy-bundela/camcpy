@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"os/exec"
 
-	"camcpy/main/components"
+	"github.com/rudy-bundela/camcpy/components"
 
 	"github.com/starfederation/datastar-go/datastar"
 )

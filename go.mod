@@ -1,4 +1,4 @@
-module camcpy/main
+module github.com/rudy-bundela/camcpy
 
 go 1.25.3
 

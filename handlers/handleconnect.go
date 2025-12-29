@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"camcpy/main/components"
+	"github.com/rudy-bundela/camcpy/components"
 
 	"github.com/starfederation/datastar-go/datastar"
 )

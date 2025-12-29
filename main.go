@@ -5,8 +5,8 @@ import (
 	"log"
 	"net/http"
 
-	"camcpy/main/components"
-	"camcpy/main/handlers"
+	"github.com/rudy-bundela/camcpy/components"
+	"github.com/rudy-bundela/camcpy/handlers"
 
 	"github.com/a-h/templ"
 	"github.com/starfederation/datastar-go/datastar"
