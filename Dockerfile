@@ -42,7 +42,7 @@ COPY . .
 # Generate the Templ Go files and build the binary
 # We use CGO_ENABLED=0 to ensure a static binary that runs easily on Alpine
 RUN templ generate && \
-    CGO_ENABLED=0 go build -v -o /camcpy .
+    CGO_ENABLED=0 go build -v -tags release -o /camcpy .
 
 # ==========================================
 # STAGE 3: Final Runtime Image

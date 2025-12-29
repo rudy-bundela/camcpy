@@ -37,11 +37,13 @@ func handleConnectedEndpoint(w http.ResponseWriter, r *http.Request) {
 func main() {
 	mux := http.NewServeMux()
 
+	staticFS := getStaticFileSystem()
+
 	// Serve static assets from filesystem
 	mux.Handle("/static/",
 		disableCacheInDevMode(
 			http.StripPrefix("/static",
-				http.FileServer(http.Dir("static")))))
+				http.FileServer(staticFS))))
 
 	scrcpyStruct := components.ScrcpyInfo{}
 
