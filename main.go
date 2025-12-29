@@ -44,12 +44,11 @@ func main() {
 				http.FileServer(http.Dir("static")))))
 
 	scrcpyStruct := components.ScrcpyInfo{}
+
 	// Main routes
-	// TODO: create proper components for this section
 	mux.Handle("/", templ.Handler(components.Welcome()))
 	mux.Handle("/pair", templ.Handler(components.PairformComponent()))
 	mux.Handle("/connect", templ.Handler(components.ConnectformComponent()))
-
 	mux.Handle("/cameraoptions", http.HandlerFunc(handlers.HandlePairing))
 	mux.Handle("/mediamtxoptions", http.HandlerFunc(handlers.HandlePairing))
 	mux.Handle("/monitor", http.HandlerFunc(handlers.HandlePairing))
@@ -67,6 +66,8 @@ func main() {
 	mux.Handle("/camera/resolutionupdate", http.HandlerFunc(scrcpyStruct.HandleCameraResolutionUpdate))
 	mux.Handle("POST /camera/startstream", http.HandlerFunc(scrcpyStruct.HandleStartStream))
 	mux.Handle("POST /camera/stopstream", http.HandlerFunc(scrcpyStruct.HandleStopStream))
+
+	// Test handlers
 	mux.Handle("/printstruct", http.HandlerFunc(scrcpyStruct.PrintStruct))
 
 	log.Println("Listening on :8080")

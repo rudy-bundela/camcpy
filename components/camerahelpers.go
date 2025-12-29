@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/starfederation/datastar-go/datastar"
 )
@@ -26,15 +27,7 @@ func readSignals(r *http.Request) (*DatastarSignalsStruct, error) {
 }
 
 func newSSE(w http.ResponseWriter, r *http.Request) *datastar.ServerSentEventGenerator {
-	return datastar.NewSSE(
-		w,
-		r,
-		datastar.WithCompression(
-			datastar.WithBrotli(
-				datastar.WithBrotliLGWin(0),
-			),
-		),
-	)
+	return datastar.NewSSE(w, r, datastar.WithCompression(datastar.WithBrotli(datastar.WithBrotliLGWin(0))))
 }
 
 // --- ScrcpyInfo Methods ---
@@ -117,6 +110,8 @@ func (s *ScrcpyInfo) HandleStartStream(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	sse := newSSE(w, r)
+
 	// 1. If a stream is already running, cancel it
 	if s.cancelStream != nil {
 		s.cancelStream()
@@ -148,40 +143,56 @@ func (s *ScrcpyInfo) HandleStartStream(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Executing: scrcpy %s", strings.Join(args, " "))
 
 	if err := cmd.Start(); err != nil {
+		s.pushStatus(sse, "Failed to start: "+err.Error(), "text-red-600")
 		log.Printf("Startup error: %v", err)
 		return
 	}
 
+	message := fmt.Sprintf("Scrcpy streaming from camera ID: %s, at a resolution of %s, with a target of %d fps", signals.CamID, resLabel, signals.Fps)
+
+	s.pushStatus(sse, message, "text-green-600")
+
 	// 5. Background monitor
-	go func() {
-		err := cmd.Wait()
-		if err != nil {
-			if ctx.Err() == context.Canceled {
-				log.Println("Scrcpy stream stopped by user/new request.")
-			} else {
-				log.Printf("Scrcpy exited with error: %v\nStderr: %s", err, stderr.String())
-			}
+	err = cmd.Wait()
+	if err != nil {
+		if ctx.Err() == context.Canceled {
+			s.pushStatus(sse, "Scrcpy stopped", "text-gray-500")
+			log.Println("Scrcpy stream stopped by user/new request.")
+		} else {
+			s.pushStatus(sse, "ERROR: Scrcpy disconnected", "text-red-600")
+			log.Printf("Scrcpy exited with error: %v\nStderr: %s", err, stderr.String())
 		}
-	}()
+	}
+}
+
+func (s *ScrcpyInfo) pushStatus(sse *datastar.ServerSentEventGenerator, message string, colourClass string) {
+	if err := sse.PatchElements(
+		fmt.Sprintf(`<div id="stream-status" class="font-bold %s">%s</div>`, colourClass, message),
+	); err != nil {
+		log.Println("Error pushing status: ", err.Error())
+	}
 }
 
 func (s *ScrcpyInfo) HandleStopStream(w http.ResponseWriter, r *http.Request) {
 	if s.cancelStream != nil {
 		log.Println("Stopping scrcpy stream...")
 		s.cancelStream()
-		s.cancelStream = nil // Reset after calling
+		s.cancelStream = nil
+		return
 	}
 
-	// Optional: Send an SSE event back to update the UI state (e.g., hide a 'Live' badge)
-	// sse := newSSE(w, r)
-	// You could patch a component here to show the "Start" button again
-	// sse.PatchElementTempl(...)
+	sse := newSSE(w, r)
+	s.pushStatus(sse, "No stream running", "text-gray-500")
+	time.Sleep(2 * time.Second)
+	s.pushStatus(sse, "But ready to stream :) ", "text-green-600")
 }
 
 func (s *ScrcpyInfo) PrintStruct(w http.ResponseWriter, r *http.Request) {
 	jsonoutput, _ := json.Marshal(s)
 	fmt.Println(string(jsonoutput))
-	w.Write(jsonoutput)
+	if _, err := w.Write(jsonoutput); err != nil {
+		log.Println("Error writing json output in PrintStruct test method: ", err)
+	}
 }
 
 // --- Data Logic Helpers ---
