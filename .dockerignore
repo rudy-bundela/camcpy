@@ -1,0 +1,22 @@
+# Git
+.git
+.gitignore
+
+# Go binaries and cache
+bin/
+obj/
+*.test
+*.exe
+*.out
+
+# Templ generated files (best to generate fresh in Docker)
+*_templ.go
+
+# Scrcpy build artifacts if you have them locally
+scrcpy/
+scrcpy-server
+
+# Local environment / Docker
+.env
+Dockerfile
+.dockerignore
