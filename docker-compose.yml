@@ -1,0 +1,39 @@
+services:
+  web:
+    image: camcpy:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      - scrcpy_adb_keys:/root/.android
+    networks:
+      - scrcpy_net
+    depends_on:
+      - mediamtx
+    command: ["/app/camcpy"]
+
+  mediamtx:
+    build:
+      context: .
+      dockerfile: mediamtx.Dockerfile
+    ports:
+      - "8554:8554"  # RTSP
+      - "8888:8888"  # API
+      - "8889:8889"  # Metrics
+      - "8189:8189/udp"
+      - "8890:8890/udp"  # WebRTC
+    volumes:
+      - ./mediamtx_conf:/mediamtx_conf
+    networks:
+      - scrcpy_net
+    restart: unless-stopped
+    command: ["/mediamtx_conf/mediamtx.yml"]
+
+networks:
+  scrcpy_net:
+    driver: bridge
+
+volumes:
+  scrcpy_adb_keys:
