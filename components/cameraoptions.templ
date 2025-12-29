@@ -1,9 +1,8 @@
 package components
 
 templ CameraComponent(s *ScrcpyInfo, signals *DatastarSignalsStruct) {
-	<div data-json-signals></div>
-	<div class="card card-title font-bold justify-center items-center">
-		<div>Camera Settings</div>
+	<div class="card font-bold justify-center items-center">
+		<div class="card card-title mt-4">Camera Settings</div>
 		@CameraBodyComponent(s, signals)
 	</div>
 }
@@ -11,7 +10,8 @@ templ CameraComponent(s *ScrcpyInfo, signals *DatastarSignalsStruct) {
 templ CameraBodyComponent(s *ScrcpyInfo, signals *DatastarSignalsStruct) {
 	<div class="card card-body w-10/12" data-signals="{position: '', camid: '', fps: '0', resolution: ''}">
 		<fieldset class="fieldset bg-base-200 border-base-300 rounded-box border p-4 overflow-auto">
-			<p>Device: { s.DeviceName }</p>
+			@StreamIndicator()
+			<h2>Device: { s.DeviceName }</h2>
 			<div class="flex flex-col items-start ">
 				<div class="join join-horizontal m-4 p-4" data-on:change="@get('/camera/idupdate')">
 					<label class="label">Camera Position: Front</label>
@@ -23,9 +23,15 @@ templ CameraBodyComponent(s *ScrcpyInfo, signals *DatastarSignalsStruct) {
 				<div class="join join-horizontal m-4 p-4" id="fps" data-on:change="@get('/camera/resolutionupdate')"></div>
 				<div class="m-4 p-4" id="resolution"></div>
 			</div>
-			<button class="btn btn-neutral mt-4" data-on:click="@post('/camera/startstream')">Start Video Stream</button>
-			<button class="btn btn-neutral mt-4" data-on:click="@post('/camera/stopstream')">Stop Video Stream</button>
+			@StartStreamButton("Start Video Stream")
+			@StopStreamButton("Stop Video Stream")
 		</fieldset>
+	</div>
+}
+
+templ StreamIndicator() {
+	<div id="stream-status" class="text-sm font-bold text-green-600">
+		Ready to stream
 	</div>
 }
 
@@ -50,11 +56,19 @@ templ CameraFPSComponent(fpslist []int) {
 templ CameraResolutionComponent(resoltions []ResolutionOption) {
 	<div class="m-4 p-4" id="resolution">
 		<label for="resolution-select" class="label">Resolution</label>
-		<select id="resolution-select" class="select" data-bind:resolution data-show="$fps != ''" style="display: none">
+		<select id="resolution-select" class="select select-info" data-bind:resolution data-show="$fps != '0'" style="display: none">
 			<option disabled selected>Pick a resolution</option>
 			for _, resolutionOption := range resoltions {
 				<option>{ resolutionOption.Label }</option>
 			}
 		</select>
 	</div>
+}
+
+templ StopStreamButton(caption string) {
+	<button class="btn btn-neutral mt-4" data-on:click="@post('/camera/stopstream')" id="stream-stop" data-show="$fps != '0'" style="display: none">{ caption }</button>
+}
+
+templ StartStreamButton(caption string) {
+	<button class="btn btn-neutral mt-4" data-on:click="@post('/camera/startstream')" id="stream-start" data-show="$fps != '0'" style="display: none">{ caption }</button>
 }
