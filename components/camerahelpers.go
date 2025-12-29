@@ -122,7 +122,7 @@ func (s *ScrcpyInfo) HandleStartStream(w http.ResponseWriter, r *http.Request) {
 	s.cancelStream = cancel
 
 	// 3. Build the argument slice
-	args := []string{"--video-source=camera"}
+	args := GetBaseScrcpyArgs()
 	args = append(args, fmt.Sprintf("--camera-fps=%d", signals.Fps))
 	args = append(args, fmt.Sprintf("--camera-id=%s", signals.CamID))
 

@@ -1,15 +1,15 @@
 //go:build release
 
-package main
+package components
 
 // GetBaseScrcpyArgs returns arguments optimized for production
 func GetBaseScrcpyArgs() []string {
 	return []string{
-		"-ra.mp4"
-		"--no-playback"
+		"-ra.mp4",
+		"--no-playback",
+		"--video-source=camera",
 		"--no-window",
 		"--no-control",
-		"--no-window",
 		"--audio-codec=aac",
 	}
 }
