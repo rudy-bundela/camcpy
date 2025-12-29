@@ -2,6 +2,8 @@
 
 package components
 
+const IsDev = false
+
 // GetBaseScrcpyArgs returns arguments optimized for production
 func GetBaseScrcpyArgs() []string {
 	return []string{

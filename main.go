@@ -12,7 +12,7 @@ import (
 	"github.com/starfederation/datastar-go/datastar"
 )
 
-var dev = true
+const dev = components.IsDev
 
 func disableCacheInDevMode(next http.Handler) http.Handler {
 	if !dev {
