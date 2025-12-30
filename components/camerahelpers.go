@@ -39,7 +39,11 @@ func (s *ScrcpyInfo) HandleGetCameraOptions(w http.ResponseWriter, r *http.Reque
 		log.Println("Datastar error reading signals in HandleGetCameraOptions:", err)
 	}
 
+	// No need to call RunGetScrcpyDetails since the struct already contains the information
 	if s.DeviceName != "" {
+		if err := sse.PatchElementTempl(Layout(CameraComponent(s, signals))); err != nil {
+			log.Println("Error patching Layout")
+		}
 		return
 	}
 
