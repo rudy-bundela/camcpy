@@ -17,9 +17,10 @@ import (
 )
 
 type ScrcpyInfo struct {
-	DeviceName   string             `json:"device_name"`
-	Cameras      []Camera           `json:"cameras"`
-	cancelStream context.CancelFunc `json:"-"`
+	DeviceName     string             `json:"device_name"`
+	Cameras        []Camera           `json:"cameras"`
+	cancelStream   context.CancelFunc `json:"-"`
+	ActiveSettings DatastarSignalsStruct
 }
 
 type Camera struct {
@@ -41,8 +42,8 @@ type FPSOption struct {
 }
 
 type ResolutionOption struct {
-	Value     string // "1920x1080"
-	Label     string // "1920x1080 (High Speed)" or just "1920x1080"
+	Value     string
+	Label     string
 	HighSpeed bool
 }
 
@@ -79,16 +80,13 @@ func (s *ScrcpyInfo) ParseScrcpyOutput(input string) error {
 
 	var currentCamera *Camera
 
-	// Key = "1920x1080", Value = Map of FPS (int -> isHighSpeed bool)
 	tempSizeMap := make(map[string]map[int]bool)
 	var currentBaseFPS []int
 	var inHighSpeedSection bool
 
 	finalizeCamera := func() {
 		if currentCamera != nil {
-			// Convert map to slice
 			for resStr, fpsMap := range tempSizeMap {
-				// Parse width/height from key for sorting
 				parts := strings.Split(resStr, "x")
 				w, _ := strconv.Atoi(parts[0])
 				h, _ := strconv.Atoi(parts[1])
@@ -101,7 +99,6 @@ func (s *ScrcpyInfo) ParseScrcpyOutput(input string) error {
 					})
 				}
 
-				// Sort FPS options by value (ascending)
 				sort.Slice(fpsOptions, func(i, j int) bool {
 					return fpsOptions[i].Value < fpsOptions[j].Value
 				})
@@ -114,7 +111,6 @@ func (s *ScrcpyInfo) ParseScrcpyOutput(input string) error {
 				})
 			}
 
-			// Sort sizes by Width descending (typical UI preference)
 			sort.Slice(currentCamera.Sizes, func(i, j int) bool {
 				return currentCamera.Sizes[i].Width > currentCamera.Sizes[j].Width
 			})
@@ -126,17 +122,14 @@ func (s *ScrcpyInfo) ParseScrcpyOutput(input string) error {
 	for scanner.Scan() {
 		line := scanner.Text()
 
-		// 1. Check for Device Name
 		if matches := reDeviceName.FindStringSubmatch(line); matches != nil {
 			info.DeviceName = strings.TrimSpace(matches[1])
 			continue
 		}
 
-		// 2. Check for Camera Header
 		if matches := reCameraHeader.FindStringSubmatch(line); matches != nil {
-			finalizeCamera() // Save previous camera if exists
+			finalizeCamera()
 
-			// Reset for new camera
 			tempSizeMap = make(map[string]map[int]bool)
 			currentBaseFPS = parseFPSList(matches[3])
 			inHighSpeedSection = false
@@ -149,37 +142,29 @@ func (s *ScrcpyInfo) ParseScrcpyOutput(input string) error {
 			continue
 		}
 
-		// 3. Check for High Speed Header
 		if reHighSpeed.MatchString(line) {
 			inHighSpeedSection = true
 			continue
 		}
 
-		// 4. Check for Size Line
 		if currentCamera != nil {
 			if matches := reSizeLine.FindStringSubmatch(line); matches != nil {
 				wStr, hStr := matches[1], matches[2]
 				fpsGroup := matches[3] // Might be empty
 				resolution := fmt.Sprintf("%sx%s", wStr, hStr)
 
-				// Determine which FPS to apply
 				var fpsToAdd []int
 				if fpsGroup != "" {
-					// This line has specific FPS (often High Speed section)
 					fpsToAdd = parseFPSList(fpsGroup)
 				} else {
-					// This line uses the camera's base FPS (Standard section)
 					fpsToAdd = currentBaseFPS
 				}
 
-				// Merge into map
 				if _, exists := tempSizeMap[resolution]; !exists {
 					tempSizeMap[resolution] = make(map[int]bool)
 				}
 
 				for _, f := range fpsToAdd {
-					// If the FPS entry already exists as 'false' (Standard), don't overwrite it with 'true' (HighSpeed).
-					// We prefer Standard mode if available for the same FPS.
 					if existingIsHighSpeed, ok := tempSizeMap[resolution][f]; ok && !existingIsHighSpeed {
 						continue
 					}
@@ -189,12 +174,11 @@ func (s *ScrcpyInfo) ParseScrcpyOutput(input string) error {
 		}
 	}
 
-	finalizeCamera() // Save the last camera
+	finalizeCamera()
 
 	return nil
 }
 
-// Helper to parse "15, 24, 30" into []int
 func parseFPSList(input string) []int {
 	parts := strings.Split(input, ",")
 	var result []int
@@ -210,8 +194,10 @@ func parseFPSList(input string) []int {
 func runOnScrcpyError(sse *datastar.ServerSentEventGenerator, err error) {
 	log.Println("Error getting information from --list-camera-sizes: ", err)
 	for i := range 3 {
-		sse.PatchElementTempl(Layout(CodePen(
-			[]string{fmt.Sprintf("Error getting information from scrcpy, redirecting to pairing page in %d...", 3-i)})))
+		if err := sse.PatchElementTempl(Layout(CodePen(
+			[]string{fmt.Sprintf("Error getting information from scrcpy, redirecting to pairing page in %d...", 3-i)}))); err != nil {
+			log.Println("Error in patching codepen with timer: ", err)
+		}
 		time.Sleep(1 * time.Second)
 	}
 	if err := sse.Redirect("/pair"); err != nil {

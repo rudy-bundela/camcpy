@@ -34,31 +34,33 @@ func newSSE(w http.ResponseWriter, r *http.Request) *datastar.ServerSentEventGen
 
 func (s *ScrcpyInfo) HandleGetCameraOptions(w http.ResponseWriter, r *http.Request) {
 	sse := newSSE(w, r)
-	signals, err := readSignals(r)
-	if err != nil {
-		log.Println("Datastar error reading signals in HandleGetCameraOptions:", err)
-	}
 
-	// No need to call RunGetScrcpyDetails since the struct already contains the information
-	if s.DeviceName != "" {
-		if err := sse.PatchElementTempl(Layout(CameraComponent(s, signals))); err != nil {
-			log.Println("Error patching Layout")
+	if s.DeviceName == "" {
+		scrcpyOutput, err := RunGetScrcpyDetails()
+		if err != nil {
+			runOnScrcpyError(sse, err)
+			return
 		}
-		return
+		if err := s.ParseScrcpyOutput(string(scrcpyOutput)); err != nil {
+			log.Println("Error parsing scrcpy output: ", err)
+		}
 	}
 
-	scrcpyOutput, err := RunGetScrcpyDetails()
-	if err != nil {
-		runOnScrcpyError(sse, err)
-		return
+	renderSignals := &DatastarSignalsStruct{}
+	if s.cancelStream != nil {
+		renderSignals = &s.ActiveSettings
 	}
 
-	if err := s.ParseScrcpyOutput(string(scrcpyOutput)); err != nil {
-		log.Println("Error parsing scrcpy output:", err)
-	}
-
-	if err := sse.PatchElementTempl(Layout(CameraComponent(s, signals))); err != nil {
+	if err := sse.PatchElementTempl(Layout(CameraComponent(s, renderSignals))); err != nil {
 		log.Println("Error patching Layout")
+	}
+
+	if s.cancelStream != nil {
+		s.pushStatus(sse, "Stream is currently active", "text-green-600")
+
+		SetCameraID(sse, renderSignals, s)
+		SetCameraFPS(sse, renderSignals, s)
+		SetCameraResolution(sse, renderSignals, s)
 	}
 }
 
@@ -116,16 +118,15 @@ func (s *ScrcpyInfo) HandleStartStream(w http.ResponseWriter, r *http.Request) {
 
 	sse := newSSE(w, r)
 
-	// 1. If a stream is already running, cancel it
 	if s.cancelStream != nil {
 		s.cancelStream()
 	}
 
-	// 2. Create a new context for this specific stream
 	ctx, cancel := context.WithCancel(context.Background())
 	s.cancelStream = cancel
 
-	// 3. Build the argument slice
+	s.ActiveSettings = *signals
+
 	args := GetBaseScrcpyArgs()
 	args = append(args, fmt.Sprintf("--camera-fps=%d", signals.Fps))
 	args = append(args, fmt.Sprintf("--camera-id=%s", signals.CamID))
@@ -137,12 +138,11 @@ func (s *ScrcpyInfo) HandleStartStream(w http.ResponseWriter, r *http.Request) {
 	}
 	args = append(args, fmt.Sprintf("--camera-size=%s", resLabel))
 
-	// 4. Create Command with Context
 	cmd := exec.CommandContext(ctx, "scrcpy", args...)
 
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
-	cmd.Stdout = os.Stdout // Pipe to server logs for visibility
+	cmd.Stdout = os.Stdout
 
 	log.Printf("Executing: scrcpy %s", strings.Join(args, " "))
 
@@ -156,7 +156,6 @@ func (s *ScrcpyInfo) HandleStartStream(w http.ResponseWriter, r *http.Request) {
 
 	s.pushStatus(sse, message, "text-green-600")
 
-	// 5. Background monitor
 	err = cmd.Wait()
 	if err != nil {
 		if ctx.Err() == context.Canceled {
@@ -218,14 +217,28 @@ func SetCameraResolution(sse *datastar.ServerSentEventGenerator, signals *Datast
 		fmt.Println("Error patching Resolution component", err)
 	}
 
-	hasHighRes := slices.ContainsFunc(resolutions, func(r ResolutionOption) bool {
-		return strings.Contains(r.Label, "1920x1080 (high-speed)")
-	})
+	highResLabel := "1920x1080 (high-speed)"
+	exists := false
+	for _, r := range resolutions {
+		if r.Label == highResLabel {
+			exists = true
+			break
+		}
+	}
 
-	if hasHighRes {
-		signals.Resolution = "1920x1080 (high-speed)"
+	if exists {
+		signals.Resolution = highResLabel
 	} else if len(resolutions) > 0 {
-		signals.Resolution = resolutions[0].Label
+		validCurrent := false
+		for _, r := range resolutions {
+			if r.Label == signals.Resolution {
+				validCurrent = true
+				break
+			}
+		}
+		if !validCurrent {
+			signals.Resolution = resolutions[0].Label
+		}
 	}
 }
 
