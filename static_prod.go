@@ -5,17 +5,17 @@ package main
 import (
 	"embed"
 	"io/fs"
+	"log"
 	"net/http"
 )
 
-//go:embed static/*
+//go:embed static
 var staticEmbed embed.FS
 
 func getStaticFileSystem() http.FileSystem {
-	// Root the filesystem at the 'static' folder
 	sub, err := fs.Sub(staticEmbed, "static")
 	if err != nil {
-		panic(err)
+		log.Fatalf("Failed to create sub-filesystem: %v", err)
 	}
 	return http.FS(sub)
 }
