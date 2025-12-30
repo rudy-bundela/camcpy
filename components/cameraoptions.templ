@@ -70,5 +70,5 @@ templ StopStreamButton(caption string) {
 }
 
 templ StartStreamButton(caption string) {
-	<button class="btn btn-neutral mt-4" data-on:click="@post('/camera/startstream')" id="stream-start" data-show="$fps != '0'" style="display: none">{ caption }</button>
+	<button class="btn btn-neutral mt-4" data-on:click="@post('/camera/startstream', {openWhenHidden: true})" id="stream-start" data-show="$fps != '0'" style="display: none">{ caption }</button>
 }
