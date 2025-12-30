@@ -22,32 +22,27 @@ func HandleADBConnect(w http.ResponseWriter, r *http.Request) {
 	IPAddress := r.Form.Get("ipaddr")
 	Port := r.Form.Get("port")
 
-	logstring := fmt.Sprintf("IP address + port received = %s:%s", IPAddress, Port)
-
 	sse := datastar.NewSSE(w, r)
-	if err := sse.ConsoleLog(logstring); err != nil {
-		log.Println("Error in SSE console log: ", err)
-	}
 
 	codepenInner := make([]string, 0, 10)
 
-	ADBoutput, err := runADBConnectWithContext(IPAddress, Port)
-	ADBoutputstring := string(ADBoutput)
+	ADBConnectOutput, err := runADBConnectWithContext(IPAddress, Port)
+	ADBConnectOutputString := string(ADBConnectOutput)
 
 	if err != nil {
-		log.Println("ADB output: ", ADBoutputstring)
+		log.Println("ADB output: ", ADBConnectOutputString)
 		log.Println("ADB connect returned an error: ", err)
 		codepenInner = append(codepenInner, err.Error())
 	}
 
-	codepenInner = append(codepenInner, ADBoutputstring)
+	codepenInner = append(codepenInner, ADBConnectOutputString)
 	locInner := components.CodePen(codepenInner)
 
 	if err := sse.PatchElementTempl(locInner); err != nil {
 		log.Println(err)
 	}
 
-	if !strings.Contains(ADBoutputstring, "connected to") {
+	if !strings.Contains(ADBConnectOutputString, "connected to") {
 		return
 	}
 
@@ -57,10 +52,14 @@ func HandleADBConnect(w http.ResponseWriter, r *http.Request) {
 }
 
 func runADBConnectWithContext(ipaddr, port string) (out []byte, err error) {
+	// 5-second timeout for adb connect (definitely needed for some input cases)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, "adb", "connect", (ipaddr + ":" + port))
+
+	logstring := fmt.Sprintf("Running command: adb connect %s:%s", ipaddr, port)
+	log.Println(logstring)
 
 	out, err = cmd.CombinedOutput()
 	if err != nil {
