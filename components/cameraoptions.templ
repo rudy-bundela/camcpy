@@ -53,12 +53,12 @@ templ CameraFPSComponent(fpslist []int) {
 	</div>
 }
 
-templ CameraResolutionComponent(resoltions []ResolutionOption) {
+templ CameraResolutionComponent(resolutions []ResolutionOption) {
 	<div class="m-4 p-4" id="resolution">
 		<label for="resolution-select" class="label">Resolution</label>
 		<select id="resolution-select" class="select select-info" data-bind:resolution data-show="$fps != '0'" style="display: none">
 			<option disabled selected>Pick a resolution</option>
-			for _, resolutionOption := range resoltions {
+			for _, resolutionOption := range resolutions {
 				<option>{ resolutionOption.Label }</option>
 			}
 		</select>
