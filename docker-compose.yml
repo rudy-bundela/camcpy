@@ -1,6 +1,8 @@
 services:
   web:
     image: camcpy:latest
+    container_name: camcpy
+    hostname: camcpy
     build:
       context: .
       dockerfile: Dockerfile
