@@ -2,8 +2,6 @@
 package main
 
 import (
-	"fmt"
-	"io/fs"
 	"log"
 	"net/http"
 
@@ -46,10 +44,7 @@ func main() {
 		disableCacheInDevMode(
 			http.StripPrefix("/static",
 				http.FileServer(staticFS))))
-	fs.WalkDir(staticEmbed, ".", func(path string, d fs.DirEntry, err error) error {
-		fmt.Println("Embedded path found:", path)
-		return nil
-	})
+
 	scrcpyStruct := components.ScrcpyInfo{}
 
 	// Main routes

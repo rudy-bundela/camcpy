@@ -26,23 +26,31 @@ RUN git clone -b turn-off-listening https://github.com/rudy-bundela/scrcpy-wip s
 # ==========================================
 FROM golang:1.25-alpine AS webserver_builder
 
-# Install build dependencies
-RUN apk add --no-cache git && \
+# 1. Install Go tools and Node.js
+RUN apk add --no-cache git nodejs npm && \
     go install github.com/a-h/templ/cmd/templ@latest
 
 WORKDIR /app
 
-# Copy only module files first for better caching
-COPY go.mod go.sum ./
-RUN go mod download
+# 2. Copy only package files first for caching
+# (If you don't have a package.json, we will create a simple one below)
+COPY package*.json ./
+RUN npm install
 
-# Copy the actual source code (respecting .dockerignore)
+# 3. Copy the rest of the source code
 COPY . .
 
-# Generate the Templ Go files and build the binary
-# We use CGO_ENABLED=0 to ensure a static binary that runs easily on Alpine
-RUN templ generate && \
-    CGO_ENABLED=0 go build -v -tags release -o /camcpy .
+# 4. GENERATION SEQUENCE:
+# First: Generate Go code from .templ files
+RUN templ generate
+
+# Second: Generate the tailwind.css file
+# This assumes you have a script "build:css" in package.json
+# or we run it directly via npx
+RUN npx tailwindcss -i ./static/css/style.css -o ./static/css/tailwind.css --minify
+
+# Third: Build the Go binary with the 'release' tag
+RUN CGO_ENABLED=0 go build -v -tags release -o /camcpy .
 
 # ==========================================
 # STAGE 3: Final Runtime Image
