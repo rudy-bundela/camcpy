@@ -50,9 +50,11 @@ func (s *ScrcpyInfo) HandleGetCameraOptions(w http.ResponseWriter, r *http.Reque
 	if s.cancelStream != nil {
 		renderSignals = &s.ActiveSettings
 	}
-
 	if err := sse.PatchElementTempl(Layout(CameraComponent(s, renderSignals))); err != nil {
 		log.Println("Error patching Layout")
+	}
+	if err := sse.MarshalAndPatchSignals(renderSignals); err != nil {
+		log.Println("Error patching signals")
 	}
 
 	if s.cancelStream != nil {
