@@ -1,9 +1,6 @@
 package components
 
-import (
-	"encoding/json"
-	"fmt"
-)
+import "encoding/json"
 
 func signalsToJSON(s *DatastarSignalsStruct) string {
 	b, _ := json.Marshal(s)
@@ -21,7 +18,7 @@ templ CameraBodyComponent(s *ScrcpyInfo, signals *DatastarSignalsStruct) {
 	<div class="card card-body w-10/12" data-signals={ signalsToJSON(signals) }>
 		<fieldset class="fieldset bg-base-200 border-base-300 rounded-box border p-4 overflow-auto">
 			@StreamIndicator()
-			<h2>Device: { s.DeviceName }</h2>
+			<p>Device: { s.DeviceName }</p>
 			<div class="flex flex-col items-start ">
 				<div class="join join-horizontal m-4 p-4" data-on:change="@get('/camera/idupdate')">
 					<label class="label">Camera Position: Front</label>
@@ -31,11 +28,12 @@ templ CameraBodyComponent(s *ScrcpyInfo, signals *DatastarSignalsStruct) {
 				</div>
 				<div class="join join-horizontal m-4 p-4" id="camID" data-on:change="@get('/camera/fpsupdate')"></div>
 				<div class="join join-horizontal m-4 p-4" id="fps" data-on:change="@get('/camera/resolutionupdate')"></div>
-				<div class="m-4 p-4" id="resolution"></div>
+				<div class="m-4 p-4">
+					<div id="resolution-select"></div>
+				</div>
 			</div>
 			@StartStreamButton("Start Video Stream")
 			@StopStreamButton("Stop Video Stream")
-			<pre data-text="JSON.stringify($$signals, null, 2)"></pre>
 		</fieldset>
 	</div>
 }
@@ -44,7 +42,6 @@ templ CameraIDComponent(cameras []Camera) {
 	<div class="join join-horizontal m-4 p-4" id="camID" data-on:change="@get('/camera/fpsupdate')">
 		for _, camera := range cameras {
 			<label class="label">Camera ID: { camera.ID }</label>
-			// Ensure data-bind is present so Datastar links the radio to the signal
 			<input type="radio" class="radio m-4" name="camid" value={ camera.ID } data-bind:camid/>
 		}
 	</div>
@@ -53,31 +50,40 @@ templ CameraIDComponent(cameras []Camera) {
 templ CameraFPSComponent(fpslist []int) {
 	<div class="join join-horizontal m-4 p-4" id="fps" data-on:change="@get('/camera/resolutionupdate')">
 		for _, fps := range fpslist {
-			<label class="label fieldset-label">FPS: { fmt.Sprint(fps) }</label>
-			<input type="radio" class="radio m-2" name="fps" value={ fmt.Sprint(fps) } data-bind:fps/>
+			<label class="label fieldset-label">FPS: { fps } </label>
+			<input type="radio" class="radio m-2" name="fps" value={ fps } data-bind:fps/>
 		}
 	</div>
 }
 
 templ CameraResolutionComponent(resolutions []ResolutionOption) {
-	<div class="m-4 p-4" id="resolution">
-		<label for="resolution-select" class="label">Resolution</label>
-		// Use data-bind:resolution to ensure the select value tracks the signal
-		<select id="resolution-select" class="select select-info" data-bind:resolution data-show="$fps != '0'">
-			<option disabled selected>Pick a resolution</option>
-			for _, resolutionOption := range resolutions {
-				<option>{ resolutionOption.Label }</option>
-			}
-		</select>
-	</div>
+	<label for="resolution-select" class="label" id="resolution-select">Resolution</label>
+	<select id="resolution-select" class="select select-info" data-bind:resolution data-show="$fps != '0'">
+		<option disabled selected>Pick a resolution</option>
+		for _, resolutionOption := range resolutions {
+			<option>{ resolutionOption.Label }</option>
+		}
+	</select>
 }
 
 templ StopStreamButton(caption string) {
-	<button class="btn btn-neutral mt-4" data-on:click="@post('/camera/stopstream')" id="stream-stop" data-show="$fps != ''" style="display: none">{ caption }</button>
+	<button
+		class="btn btn-neutral mt-4"
+		data-on:click="@post('/camera/stopstream')"
+		id="stream-stop"
+		data-show="$fps != '0'"
+		style="display: none"
+	>{ caption }</button>
 }
 
 templ StartStreamButton(caption string) {
-	<button class="btn btn-neutral mt-4" data-on:click="@post('/camera/startstream', {openWhenHidden: true})" id="stream-start" data-show="$fps != '0'" style="display: none">{ caption }</button>
+	<button
+		class="btn btn-neutral mt-4"
+		data-on:click="@post('/camera/startstream', {openWhenHidden: true})"
+		id="stream-start"
+		data-show="$fps != '0'"
+		style="display: none"
+	>{ caption }</button>
 }
 
 templ StreamIndicator() {
