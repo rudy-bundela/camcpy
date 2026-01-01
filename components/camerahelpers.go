@@ -58,7 +58,10 @@ func (s *ScrcpyInfo) HandleGetCameraOptions(w http.ResponseWriter, r *http.Reque
 	}
 
 	if s.cancelStream != nil {
-		s.pushStatus(sse, "Stream is currently active", "text-green-600")
+
+		message := fmt.Sprintf("Scrcpy streaming from camera ID: %s, at a resolution of %s, with a target of %d fps",
+			s.ActiveSettings.CamID, s.ActiveSettings.Resolution, s.ActiveSettings.Fps)
+		s.pushStatus(sse, message, "text-green-600")
 
 		SetCameraID(sse, renderSignals, s)
 		SetCameraFPS(sse, renderSignals, s)
@@ -164,7 +167,7 @@ func (s *ScrcpyInfo) HandleStartStream(w http.ResponseWriter, r *http.Request) {
 			s.pushStatus(sse, "Scrcpy stopped", "text-gray-500")
 			log.Println("Scrcpy stream stopped by user/new request.")
 		} else {
-			s.pushStatus(sse, "ERROR: Scrcpy disconnected", "text-red-600")
+			s.pushStatus(sse, "ERROR: Scrcpy disconnected, check the container logs", "text-red-600")
 			log.Printf("Scrcpy exited with error: %v\nStderr: %s", err, stderr.String())
 		}
 	}
@@ -179,14 +182,15 @@ func (s *ScrcpyInfo) pushStatus(sse *datastar.ServerSentEventGenerator, message 
 }
 
 func (s *ScrcpyInfo) HandleStopStream(w http.ResponseWriter, r *http.Request) {
+	sse := newSSE(w, r)
 	if s.cancelStream != nil {
 		log.Println("Stopping scrcpy stream...")
 		s.cancelStream()
+		s.pushStatus(sse, "Stream stopped", "text-gray-500")
 		s.cancelStream = nil
 		return
 	}
 
-	sse := newSSE(w, r)
 	s.pushStatus(sse, "No stream running", "text-gray-500")
 	time.Sleep(2 * time.Second)
 	s.pushStatus(sse, "But ready to stream :) ", "text-green-600")
