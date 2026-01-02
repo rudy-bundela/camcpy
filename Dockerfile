@@ -13,7 +13,7 @@ RUN apk add --no-cache \
 RUN curl -L -o scrcpy-server https://github.com/Genymobile/scrcpy/releases/download/v${SCRCPY_VER}/scrcpy-server-v${SCRCPY_VER} \
     && echo "$SERVER_HASH  /scrcpy-server" | sha256sum -c -
 
-# Build scrcpy from your specific branch
+# Build modified version of scrcpy to allow RTMP streaming
 RUN git clone -b turn-off-listening https://github.com/rudy-bundela/scrcpy-wip scrcpy \
     && cd scrcpy \
     && meson x --buildtype=release --strip -Db_lto=true -Dprebuilt_server=/scrcpy-server \
@@ -26,30 +26,24 @@ RUN git clone -b turn-off-listening https://github.com/rudy-bundela/scrcpy-wip s
 # ==========================================
 FROM golang:1.25-alpine AS webserver_builder
 
-# 1. Install Go tools and Node.js
+# Install Go tools and Node.js
 RUN apk add --no-cache git nodejs npm && \
     go install github.com/a-h/templ/cmd/templ@latest
 
 WORKDIR /app
 
-# 2. Copy only package files first for caching
-# (If you don't have a package.json, we will create a simple one below)
+# Copy only package files first for caching
 COPY package*.json ./
 RUN npm install
 
-# 3. Copy the rest of the source code
+# Copy the rest of the source code
 COPY . .
 
-# 4. GENERATION SEQUENCE:
-# First: Generate Go code from .templ files
+# Generate HTML and CSS
 RUN templ generate
-
-# Second: Generate the tailwind.css file
-# This assumes you have a script "build:css" in package.json
-# or we run it directly via npx
 RUN npx tailwindcss -i ./static/css/style.css -o ./static/css/tailwind.css --minify
 
-# Third: Build the Go binary with the 'release' tag
+# Build the Go binary with the 'release' tag (this generates a binary with the html and css embedded in it)
 RUN CGO_ENABLED=0 go build -v -tags release -o /camcpy .
 
 # ==========================================
@@ -57,7 +51,7 @@ RUN CGO_ENABLED=0 go build -v -tags release -o /camcpy .
 # ==========================================
 FROM alpine:latest
 
-# Install runtime dependencies for scrcpy and general networking
+# Install runtime dependencies for scrcpy
 RUN apk add --no-cache \
     ffmpeg \
     libusb \
