@@ -14,41 +14,41 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                         Web Browser                              │
+│                         Web Browser                             │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                     Camcpy Web Server (Go)                      │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────┐│
-│  │   Pair UI   │  │  Connect UI  │  │  Camera Settings UI     ││
-│  │  /pair      │  │  /connect    │  │  /setupcamera            ││
-│  └─────────────┘  └─────────────┘  └─────────────────────────┘│
-│                              │                                   │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────┐  │
+│  │   Pair UI   │  │  Connect UI │  │  Camera Settings UI     │  │
+│  │  /pair      │  │  /connect   │  │  /setupcamera           │  │
+│  └─────────────┘  └─────────────┘  └─────────────────────────┘  │
+│                              │                                  │
 │  ┌───────────────────────────┴───────────────────────────────┐  │
 │  │              Handlers (ADB + scrcpy control)              │  │
 │  └───────────────────────────┬───────────────────────────────┘  │
-└──────────────────────────────┼───────────────────────────────────┘
+└──────────────────────────────┼──────────────────────────────────┘
                                │ ADB Commands
                                ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                     Android Device                               │
-│                     (via ADB WiFi)                               │
+│                     Android Device                              │
+│                     (via ADB WiFi)                              │
 └─────────────────────────────────────────────────────────────────┘
                                │
                                ▼ Camera Stream
 ┌─────────────────────────────────────────────────────────────────┐
-│                      scrcpy (Camera Capture)                     │
-│              --video-source=camera --no-window                   │
-└──────────────────────────────┬───────────────────────────────────┘
+│                      scrcpy (Camera Capture)                    │
+│              --video-source=camera --no-window                  │
+└──────────────────────────────┬──────────────────────────────────┘
                                │ H.264/AAC Stream
                                ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                      MediaMTX Server                             │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌────────────────┐  │
-│  │   RTSP   │  │   HLS    │  │ WebRTC   │  │     SRT        │  │
-│  │ :8554    │  │  :8888   │  │  :8889   │  │    :8890       │  │
-│  └──────────┘  └──────────┘  └──────────┘  └────────────────┘  │
+│                      MediaMTX Server                            │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌────────────────┐   │
+│  │   RTSP   │  │   HLS    │  │ WebRTC   │  │     SRT        │   │
+│  │ :8554    │  │  :8888   │  │  :8889   │  │    :8890       │   │
+│  └──────────┘  └──────────┘  └──────────┘  └────────────────┘   │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -60,34 +60,7 @@
 - [scrcpy](https://github.com/Genymobile/scrcpy) (with camera support)
 - Docker & Docker Compose (for containerized deployment)
 
-### Installing scrcpy with Camera Support
-
-```bash
-# Install dependencies
-sudo apt install ffmpeg libsdl2-2.0-0 libusb-1.0-0 meson ninja-build gcc git
-
-# Clone and build scrcpy with camera support
-git clone -b turn-off-listening https://github.com/rudy-bundela/scrcpy-wip
-cd scrcpy-wip
-meson x --buildtype=release --strip -Db_lto=true
-cd x
-ninja
-sudo ninja install
-```
-
 ## Quick Start
-
-### Local Development
-
-```bash
-# Install all dependencies
-make install
-
-# Run live development server (Go + Templ + Tailwind)
-make live
-```
-
-Visit `http://localhost:8080`
 
 ### Docker Deployment
 
@@ -102,6 +75,8 @@ open http://localhost:8080
 ## Usage
 
 ### 1. Enable ADB over WiFi on Your Phone
+
+TODO: Fix this incorrect stuff
 
 ```bash
 # Connect via USB first, then:
@@ -129,9 +104,20 @@ adb tcpip 5555
 2. Choose FPS and resolution
 3. Click "Start Video Stream"
 4. Access stream via MediaMTX endpoints:
-   - **RTSP**: `rtsp://localhost:8554/stream`
-   - **HLS**: `http://localhost:8888/stream/live.m3u8`
-   - **WebRTC**: Use the WebRTC URL from MediaMTX
+   - **HLS**: `http://localhost:8888/live/stream`
+   - **WebRTC**: `http://localhost:8888/live/stream`
+
+### Local Development
+
+```bash
+# Install all dependencies
+make install
+
+# Run live development server (Go + Templ + Tailwind)
+make live
+```
+
+Visit `http://localhost:8080`
 
 ## Project Structure
 
@@ -179,39 +165,5 @@ camcpy/
 ```bash
 make install       # Install all dependencies (Go, Templ, Tailwind)
 make live          # Run live development server with hot reload
-make live/templ    # Watch and generate templ components
-make live/server   # Watch and rebuild Go server
-make live/tailwind # Watch and rebuild CSS
-```
-
-### Build for Production
-
-```bash
-# Generate static assets
-templ generate
-npx tailwindcss -i ./static/css/style.css -o ./static/css/tailwind.css --minify
-
-# Build Go binary with embedded assets
-CGO_ENABLED=0 go build -v -tags release -o camcpy .
-```
-
-## Troubleshooting
-
-### Device Not Found
-- Ensure ADB WiFi is enabled: `adb tcpip 5555`
-- Check firewall allows port 5555
-- Verify device IP: `adb shell ip route`
-
-### Streaming Fails
-- Confirm scrcpy supports camera: `scrcpy --list-camera-sizes`
-- Check MediaMTX logs: `docker logs mediamtx`
-- Verify stream URL matches configuration
-
-### Pairing Timeout
-- Ensure pairing code is entered correctly
-- Some devices require USB pairing first
-- Check device screen for confirmation dialog
-
-## License
 
 MIT
